@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Cartografia Operacional</title>
+<meta name="description" content="Cartografia — um software para observar, modelar e simular sistemas organizacionais vivos." />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<canvas id="field"></canvas>
+
+<!-- boot -->
+<div id="boot">
+  <div class="brand"><b>CARTOGRAFIA</b></div>
+  <div class="boot-meta">
+    VERSION&nbsp;&nbsp;0.3<br />
+    LOADING ORGANIZATIONAL MODEL
+  </div>
+  <div class="boot-bar"><i></i></div>
+</div>
+
+<!-- hud -->
+<div class="hud hud-brand"><b>CARTOGRAFIA</b></div>
+<div class="hud hud-ver">OPERATIONAL CARTOGRAPHY</div>
+<div class="hud hud-status">
+  MODEL LIVE<span class="dot"></span><br />
+  <span id="nodecount">—</span> NODES
+</div>
+
+<div id="cue">OBSERVE.</div>
+
+<!-- espinha de comportamentos -->
+<div class="spine" id="spine"></div>
+
+<!-- painel do comportamento ativo -->
+<div class="readout" id="readout">
+  <div class="k" id="ro-k"></div>
+  <div class="t" id="ro-t"></div>
+  <div class="d" id="ro-d"></div>
+</div>
+
+<script src="js/cartografia.js"></script>
+</body>
+</html>
