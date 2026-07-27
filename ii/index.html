@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Vitória Zambelli">
+<meta name="description" content="Cartografia, capítulo II — antes de projetar soluções, é preciso compreender o sistema.">
+<title>Cartografia — Capítulo II</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@200;300;400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04060a;
+  --graphite:#0b0e13;
+  --panel:#10141b;
+  --line:rgba(90,120,165,.28);
+  --line-soft:rgba(90,120,165,.14);
+  --blue:#5a78a5;
+  --ink:#f4f4f1;
+  --dim:#8b93a1;
+  --faint:#565d69;
+  --copper:#c08a4e; /* único destaque do site, nada de neon */
+  --copper-soft:rgba(192,138,78,.35);
+  --display:'Spectral',serif;
+  --mono:'IBM Plex Mono',monospace;
+  --body:'Inter',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--body);
+  font-weight:300;
+  overflow-x:hidden;
+}
+::selection{background:var(--copper-soft);color:var(--ink)}
+
+#net{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:0;opacity:0;transition:opacity 3s ease;
+}
+#net.on{opacity:1}
+
+/* abertura */
+#intro{
+  position:fixed;inset:0;background:var(--bg);z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity 2.2s ease;
+}
+#intro.gone{opacity:0;pointer-events:none}
+#spark{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--ink);
+  opacity:0;
+  box-shadow:0 0 18px 4px rgba(244,244,241,.35);
+}
+#spark.live{animation:spark 2.6s ease-in-out infinite;opacity:1;transition:opacity 2s ease}
+@keyframes spark{
+  0%,100%{transform:scale(1);box-shadow:0 0 14px 3px rgba(244,244,241,.25)}
+  50%{transform:scale(1.7);box-shadow:0 0 30px 8px rgba(244,244,241,.45)}
+}
+.phrase{
+  position:fixed;inset:0;z-index:40;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 8vw;text-align:center;
+  pointer-events:none;
+  opacity:0;transition:opacity 2.4s ease;
+}
+.phrase.show{opacity:1}
+.phrase p{
+  font-family:var(--display);font-weight:200;
+  font-size:clamp(1.6rem,3.4vw,3rem);
+  line-height:1.5;letter-spacing:.02em;color:var(--ink);
+  max-width:22em;
+}
+#skip{
+  position:fixed;bottom:28px;right:32px;z-index:60;
+  background:none;border:none;color:var(--faint);
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;
+  text-transform:uppercase;cursor:pointer;
+  opacity:0;transition:opacity 1.5s ease,color .3s ease;
+}
+#skip.show{opacity:1}
+#skip:hover{color:var(--dim)}
+
+#site{position:relative;z-index:10;opacity:0;transition:opacity 2.5s ease}
+#site.on{opacity:1}
+
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:30;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:26px 5vw;
+  background:linear-gradient(to bottom,rgba(4,6,10,.85),transparent);
+}
+nav .mark{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--dim);
+}
+nav .mark a{color:inherit;text-decoration:none}
+nav .mark a:hover{color:var(--ink)}
+nav .mark .cap{color:var(--faint);letter-spacing:.14em}
+nav ul{display:flex;gap:34px;list-style:none}
+nav a{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--faint);
+  text-decoration:none;transition:color .35s ease;
+}
+nav a:hover,nav a:focus-visible{color:var(--ink)}
+nav a:focus-visible{outline:1px solid var(--copper);outline-offset:4px}
+
+section{position:relative;padding:22vh 8vw;max-width:1200px;margin:0 auto}
+
+.eyebrow{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--copper);margin-bottom:2.2rem;
+}
+h1,h2{font-family:var(--display);font-weight:200;letter-spacing:.01em}
+h1{font-size:clamp(2.6rem,6.5vw,5.2rem);line-height:1.12}
+h2{font-size:clamp(1.9rem,4vw,3.1rem);line-height:1.25;max-width:16em}
+.sub{
+  margin-top:2rem;color:var(--dim);font-weight:300;
+  font-size:clamp(1rem,1.5vw,1.2rem);line-height:1.8;max-width:34em;
+}
+.legend{
+  font-family:var(--mono);font-size:.78rem;line-height:2;
+  letter-spacing:.06em;color:var(--dim);margin-top:2.4rem;
+}
+.legend em{color:var(--copper);font-style:normal}
+
+.rv{opacity:0;transform:translateY(26px);transition:opacity 1.4s ease,transform 1.4s ease}
+.rv.in{opacity:1;transform:none}
+
+#hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  justify-content:center;padding-top:18vh;
+}
+#hero .sub{margin-top:2.4rem}
+.explore{
+  margin-top:4rem;display:inline-flex;align-items:center;gap:16px;
+  background:none;border:1px solid rgba(244,244,241,.22);
+  color:var(--ink);padding:16px 42px;cursor:pointer;
+  font-family:var(--mono);font-size:.75rem;letter-spacing:.34em;
+  text-transform:uppercase;align-self:flex-start;
+  transition:border-color .4s ease,background .4s ease;
+}
+.explore:hover,.explore:focus-visible{border-color:var(--copper);background:rgba(192,138,78,.07)}
+.explore:focus-visible{outline:none}
+.explore span{color:var(--copper);transition:transform .4s ease}
+.explore:hover span{transform:translateX(6px)}
+
+
+.diagram{
+  margin-top:4.5rem;border:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(160deg,rgba(16,20,27,.72),rgba(6,8,12,.72));
+  backdrop-filter:blur(4px);
+  padding:clamp(1rem,3vw,3rem);
+}
+.diagram svg{width:100%;height:auto;display:block}
+.svgbox{stroke:var(--line);fill:rgba(16,20,27,.9)}
+.svglabel{font-family:var(--mono);font-size:11px;fill:var(--dim);letter-spacing:.12em}
+.svglabel.small{font-size:9px;fill:var(--faint)}
+.flow{stroke:var(--blue);stroke-width:1;fill:none;opacity:.55}
+.node-dot{fill:var(--ink)}
+
+.ctl{
+  margin-top:2.2rem;background:none;cursor:pointer;
+  border:1px solid rgba(244,244,241,.18);color:var(--dim);
+  padding:12px 30px;font-family:var(--mono);font-size:.7rem;
+  letter-spacing:.28em;text-transform:uppercase;
+  transition:color .35s ease,border-color .35s ease;
+}
+.ctl:hover,.ctl:focus-visible{color:var(--ink);border-color:var(--copper);outline:none}
+
+#walls,#flows{transition:opacity 1.6s ease}
+#flows{opacity:0}
+.x-ray #walls{opacity:.08}
+.x-ray #flows{opacity:1}
+
+.dep{stroke:var(--line);stroke-width:1;fill:none;stroke-dasharray:340;stroke-dashoffset:340;transition:stroke-dashoffset 2.4s ease}
+.in .dep{stroke-dashoffset:0}
+.dep.critical{stroke:var(--copper);stroke-width:1.6;transition-delay:1.2s}
+.op{transition:opacity 1.4s ease 2.2s}
+.in .op.hit{opacity:.18}
+.pulse-critical{fill:var(--copper);opacity:0}
+.in .pulse-critical{animation:critpulse 2.8s ease-in-out 2.4s infinite}
+@keyframes critpulse{0%,100%{opacity:.15;r:4}50%{opacity:.9;r:7}}
+
+.controls{display:flex;flex-wrap:wrap;gap:3rem;align-items:flex-start;margin-top:3rem}
+.slider-wrap{flex:1;min-width:260px}
+.slider-wrap label{
+  display:block;font-family:var(--mono);font-size:.68rem;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-bottom:1.4rem;
+}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:1px;
+  background:rgba(244,244,241,.25);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--copper);cursor:pointer;box-shadow:0 0 14px rgba(192,138,78,.5);
+}
+input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:var(--copper);cursor:pointer;box-shadow:0 0 14px rgba(192,138,78,.5);
+}
+.metrics{display:flex;gap:3rem;flex-wrap:wrap}
+.metric .k{font-family:var(--display);font-weight:200;font-size:2.2rem;color:var(--ink)}
+.metric .l{font-family:var(--mono);font-size:.62rem;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin-top:.5rem}
+#arch-extra path{stroke:var(--copper);stroke-width:1;fill:none;transition:opacity .6s ease}
+
+/* os "planetas" dos casos */
+.orbits{display:flex;flex-wrap:wrap;gap:clamp(2rem,5vw,4.5rem);margin-top:4rem;justify-content:flex-start}
+.planet{background:none;border:none;cursor:pointer;text-align:center;color:inherit;padding:0}
+.planet .body{
+  width:clamp(72px,9vw,110px);height:clamp(72px,9vw,110px);border-radius:50%;
+  margin:0 auto;position:relative;
+  background:radial-gradient(circle at 32% 30%,#3a4d6d 0%,#141b28 55%,#05070c 100%);
+  box-shadow:inset -8px -10px 24px rgba(0,0,0,.7),0 0 0 1px rgba(90,120,165,.18);
+  transition:transform .6s ease,box-shadow .6s ease;
+}
+.planet .body::after{
+  content:"";position:absolute;inset:-14px;border-radius:50%;
+  border:1px solid rgba(90,120,165,.14);
+  transform:rotateX(64deg);
+}
+.planet:hover .body,.planet:focus-visible .body{
+  transform:translateY(-6px);
+  box-shadow:inset -8px -10px 24px rgba(0,0,0,.7),0 0 0 1px var(--copper-soft),0 0 34px rgba(192,138,78,.14);
+}
+.planet:focus-visible{outline:none}
+.planet .name{
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--dim);margin-top:1.3rem;
+}
+.case-view{
+  margin-top:3.5rem;border-left:1px solid var(--copper-soft);
+  padding:1.6rem 0 1.6rem 2.2rem;min-height:7.5rem;
+  opacity:0;transform:translateY(10px);transition:opacity .9s ease,transform .9s ease;
+}
+.case-view.show{opacity:1;transform:none}
+.case-view h3{font-family:var(--display);font-weight:300;font-size:1.5rem;margin-bottom:.9rem}
+.case-view p{color:var(--dim);line-height:1.9;max-width:38em;font-size:.95rem}
+
+.method{margin-top:4rem;position:relative;padding-left:3rem}
+.method::before{
+  content:"";position:absolute;left:9px;top:12px;bottom:12px;width:1px;
+  background:linear-gradient(var(--line),var(--copper-soft));
+}
+.step{position:relative;padding:1.5rem 0}
+.step::before{
+  content:"";position:absolute;left:-3rem;top:2.15rem;width:19px;height:19px;
+  border-radius:50%;border:1px solid var(--line);
+  background:var(--bg);transition:border-color .6s ease,box-shadow .6s ease;
+}
+.step.in::before{border-color:var(--copper);box-shadow:0 0 14px rgba(192,138,78,.35)}
+.step .t{font-family:var(--display);font-weight:300;font-size:1.6rem}
+.step .d{color:var(--faint);font-size:.9rem;margin-top:.5rem;max-width:34em;line-height:1.8}
+
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1px;background:rgba(255,255,255,.07);margin-top:4rem;border:1px solid rgba(255,255,255,.07)}
+.mod{background:var(--bg);padding:2.4rem 2rem;transition:background .5s ease}
+.mod:hover{background:var(--panel)}
+.mod .n{font-family:var(--mono);font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:var(--copper)}
+.mod .t{font-family:var(--display);font-weight:300;font-size:1.35rem;margin-top:1rem}
+.mod .d{color:var(--faint);font-size:.86rem;line-height:1.8;margin-top:.8rem}
+
+#fim{
+  min-height:90vh;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;text-align:center;
+}
+#fim h2{max-width:20em}
+.back-cap1{
+  margin-top:3.4rem;font-family:var(--mono);font-size:.68rem;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--faint);
+  text-decoration:none;border-bottom:1px solid transparent;
+  transition:color .35s ease,border-color .35s ease;
+}
+.back-cap1:hover{color:var(--copper);border-color:var(--copper-soft)}
+.sig{margin-top:5rem}
+.sig .name{font-family:var(--display);font-weight:300;font-size:1.4rem;letter-spacing:.04em}
+.sig .roles{
+  margin-top:1.2rem;font-family:var(--mono);font-size:.66rem;
+  letter-spacing:.3em;text-transform:uppercase;color:var(--faint);line-height:2.4;
+}
+
+@media (max-width:760px){
+  nav ul{display:none}
+  section{padding:16vh 7vw}
+  .method{padding-left:2.4rem}
+  .step::before{left:-2.4rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  #net{opacity:.5}
+}
+</style>
+</head>
+<body>
+
+<canvas id="net" aria-hidden="true"></canvas>
+
+<div id="intro"><div id="spark"></div></div>
+<div class="phrase" id="ph1"><p>Todo sistema possui um ponto cego.</p></div>
+<div class="phrase" id="ph2"><p>O problema raramente nasce onde ele aparece.</p></div>
+<div class="phrase" id="ph3"><p>Antes de projetar soluções,<br>é preciso compreender o sistema.</p></div>
+<button id="skip">Pular abertura</button>
+
+<div id="site">
+  <nav aria-label="Principal">
+    <div class="mark"><a href="https://vzambelli.github.io/cartografia/" title="Voltar ao capítulo I">Cartografia</a> <span class="cap">/ cap. II</span></div>
+    <ul>
+      <li><a href="#b1">Mapa</a></li>
+      <li><a href="#b4">Ecossistemas</a></li>
+      <li><a href="#b4">Projetos</a></li>
+      <li><a href="#b6">Laboratórios</a></li>
+      <li><a href="#b5">Método</a></li>
+      <li><a href="#b7">Arquivo</a></li>
+    </ul>
+  </nav>
+
+  <section id="hero">
+    <div class="eyebrow rv">Cartografia — capítulo II</div>
+    <h1 class="rv">Cartografando<br>Sistemas Complexos</h1>
+    <p class="sub rv">O capítulo I mostrou um sistema vivo.<br>Este mostra como compreendê-lo, projetá-lo e visualizá-lo.</p>
+    <button class="explore rv" onclick="document.getElementById('b1').scrollIntoView({behavior:'smooth'})">Explorar <span>→</span></button>
+  </section>
+
+  <section id="b1">
+    <div class="eyebrow rv">01 — Observação</div>
+    <h2 class="rv" id="b1-title">Nenhuma organização é realmente plana.</h2>
+    <div class="diagram rv" id="org">
+      <svg viewBox="0 0 720 340" role="img" aria-label="Uma organização vista primeiro como paredes e departamentos, depois como fluxos">
+        <g id="walls">
+          <rect x="40"  y="40"  width="180" height="110" class="svgbox"/>
+          <rect x="270" y="40"  width="180" height="110" class="svgbox"/>
+          <rect x="500" y="40"  width="180" height="110" class="svgbox"/>
+          <rect x="40"  y="190" width="180" height="110" class="svgbox"/>
+          <rect x="270" y="190" width="180" height="110" class="svgbox"/>
+          <rect x="500" y="190" width="180" height="110" class="svgbox"/>
+          <text x="130" y="100" text-anchor="middle" class="svglabel">OPERAÇÕES</text>
+          <text x="360" y="100" text-anchor="middle" class="svglabel">COMUNICAÇÃO</text>
+          <text x="590" y="100" text-anchor="middle" class="svglabel">PESSOAS</text>
+          <text x="130" y="250" text-anchor="middle" class="svglabel">INFRAESTRUTURA</text>
+          <text x="360" y="250" text-anchor="middle" class="svglabel">DADOS</text>
+          <text x="590" y="250" text-anchor="middle" class="svglabel">DECISÕES</text>
+        </g>
+        <g id="flows">
+          <path class="flow" d="M130,95 C 220,60 300,60 360,95"/>
+          <path class="flow" d="M360,95 C 450,60 520,60 590,95"/>
+          <path class="flow" d="M130,95 C 120,160 120,190 130,245"/>
+          <path class="flow" d="M590,95 C 600,160 600,190 590,245"/>
+          <path class="flow" d="M130,245 C 230,290 280,290 360,245"/>
+          <path class="flow" d="M360,245 C 450,290 510,290 590,245"/>
+          <path class="flow" d="M360,95 C 350,160 350,190 360,245"/>
+          <path class="flow" d="M130,95 C 240,170 260,180 360,245"/>
+          <path class="flow" d="M590,95 C 480,170 460,180 360,245"/>
+          <circle cx="130" cy="95"  r="4" class="node-dot"/>
+          <circle cx="360" cy="95"  r="4" class="node-dot"/>
+          <circle cx="590" cy="95"  r="4" class="node-dot"/>
+          <circle cx="130" cy="245" r="4" class="node-dot"/>
+          <circle cx="360" cy="245" r="4" class="node-dot"/>
+          <circle cx="590" cy="245" r="4" class="node-dot"/>
+        </g>
+      </svg>
+    </div>
+    <button class="ctl rv" id="btn-walls">Remover paredes</button>
+  </section>
+
+  <section id="b2">
+    <div class="eyebrow rv">02 — Diagnóstico</div>
+    <h2 class="rv">Pontos cegos não aparecem em organogramas.</h2>
+    <div class="diagram rv" id="dep-diagram">
+      <svg viewBox="0 0 720 320" role="img" aria-label="Cinco operações dependendo de um único ponto do sistema">
+        <circle cx="360" cy="250" r="10" fill="none" stroke="var(--copper)" stroke-width="1"/>
+        <circle cx="360" cy="250" r="4" class="pulse-critical"/>
+        <text x="360" y="292" text-anchor="middle" class="svglabel">SERVIÇO DE AUTENTICAÇÃO</text>
+        <g>
+          <circle cx="90"  cy="70" r="5" class="node-dot op hit"/>
+          <circle cx="225" cy="55" r="5" class="node-dot op hit"/>
+          <circle cx="360" cy="48" r="5" class="node-dot op hit"/>
+          <circle cx="495" cy="55" r="5" class="node-dot op hit"/>
+          <circle cx="630" cy="70" r="5" class="node-dot op hit"/>
+          <text x="90"  y="34" text-anchor="middle" class="svglabel small op hit">ATENDIMENTO</text>
+          <text x="225" y="34" text-anchor="middle" class="svglabel small op hit">FATURAMENTO</text>
+          <text x="360" y="28" text-anchor="middle" class="svglabel small op hit">LOGÍSTICA</text>
+          <text x="495" y="34" text-anchor="middle" class="svglabel small op hit">AGENDAMENTO</text>
+          <text x="630" y="34" text-anchor="middle" class="svglabel small op hit">RELATÓRIOS</text>
+        </g>
+        <path class="dep critical" d="M360,240 C 250,180 130,130 90,80"/>
+        <path class="dep critical" d="M360,240 C 300,170 245,110 225,65"/>
+        <path class="dep critical" d="M360,240 C 360,180 360,110 360,58"/>
+        <path class="dep critical" d="M360,240 C 420,170 475,110 495,65"/>
+        <path class="dep critical" d="M360,240 C 470,180 590,130 630,80"/>
+      </svg>
+    </div>
+    <p class="legend rv">Uma única dependência<br>interrompe <em>cinco operações</em>.</p>
+  </section>
+
+  <section id="b3">
+    <div class="eyebrow rv">03 — Arquitetura</div>
+    <h2 class="rv">Toda decisão altera o comportamento do sistema.</h2>
+    <div class="diagram rv">
+      <svg viewBox="0 0 720 300" role="img" aria-label="Rede que ganha redundância conforme a decisão de arquitetura">
+        <g id="arch-base">
+          <path class="flow" d="M120,150 C 220,90 320,90 380,150"/>
+          <path class="flow" d="M380,150 C 460,210 540,210 600,150"/>
+          <circle cx="120" cy="150" r="5" class="node-dot"/>
+          <circle cx="380" cy="150" r="8" fill="var(--copper)" id="bottleneck"/>
+          <circle cx="600" cy="150" r="5" class="node-dot"/>
+          <text x="120" y="190" text-anchor="middle" class="svglabel small">ENTRADA</text>
+          <text x="380" y="196" text-anchor="middle" class="svglabel small">NÚCLEO</text>
+          <text x="600" y="190" text-anchor="middle" class="svglabel small">ENTREGA</text>
+        </g>
+        <g id="arch-extra">
+          <path d="M120,150 C 220,240 500,240 600,150" opacity="0"/>
+          <path d="M120,150 C 200,50 340,40 480,70 C 540,84 580,110 600,150" opacity="0"/>
+          <path d="M240,120 C 300,200 440,200 500,120" opacity="0"/>
+        </g>
+      </svg>
+    </div>
+    <div class="controls rv">
+      <div class="slider-wrap">
+        <label for="arch">Decisão de arquitetura — redundância</label>
+        <input type="range" id="arch" min="0" max="100" value="0">
+      </div>
+      <div class="metrics" aria-live="polite">
+        <div class="metric"><div class="k" id="m-time">14 h</div><div class="l">Tempo de resposta</div></div>
+        <div class="metric"><div class="k" id="m-risk">Alto</div><div class="l">Risco de interrupção</div></div>
+        <div class="metric"><div class="k" id="m-bott">3</div><div class="l">Gargalos ativos</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="b4">
+    <div class="eyebrow rv">04 — Casos</div>
+    <h2 class="rv">Cada organização é um mundo próprio.</h2>
+    <div class="orbits rv" role="list">
+      <button class="planet" role="listitem" data-case="hospital"><div class="body"></div><div class="name">Hospital</div></button>
+      <button class="planet" role="listitem" data-case="logistica"><div class="body"></div><div class="name">Logística</div></button>
+      <button class="planet" role="listitem" data-case="escritorio"><div class="body"></div><div class="name">Escritório</div></button>
+      <button class="planet" role="listitem" data-case="callcenter"><div class="body"></div><div class="name">Call Center</div></button>
+      <button class="planet" role="listitem" data-case="startup"><div class="body"></div><div class="name">Startup</div></button>
+    </div>
+    <div class="case-view" id="case-view" aria-live="polite">
+      <h3 id="case-title"></h3>
+      <p id="case-text"></p>
+    </div>
+  </section>
+
+  <section id="b5">
+    <div class="eyebrow rv">05 — Método</div>
+    <h2 class="rv">Da observação à evolução.</h2>
+    <div class="method">
+      <div class="step rv"><div class="t">Problema</div><div class="d">Algo interrompe, atrasa ou confunde. Ainda não sabemos onde ele nasce.</div></div>
+      <div class="step rv"><div class="t">Observação</div><div class="d">O sistema é acompanhado em funcionamento, sem interferência.</div></div>
+      <div class="step rv"><div class="t">Modelagem</div><div class="d">Fluxos, dependências e decisões viram um mapa que pode ser discutido.</div></div>
+      <div class="step rv"><div class="t">Requisitos</div><div class="d">O que o sistema precisa fazer — e o que ele nunca pode deixar de fazer.</div></div>
+      <div class="step rv"><div class="t">Arquitetura</div><div class="d">A estrutura é projetada para eliminar pontos cegos, não para escondê-los.</div></div>
+      <div class="step rv"><div class="t">Integração</div><div class="d">As partes passam a operar como um único organismo.</div></div>
+      <div class="step rv"><div class="t">Validação</div><div class="d">O comportamento real é comparado com o comportamento projetado.</div></div>
+      <div class="step rv"><div class="t">Evolução</div><div class="d">O mapa é revisado à medida que o território muda.</div></div>
+    </div>
+  </section>
+
+  <section id="b6">
+    <div class="eyebrow rv">06 — Laboratórios</div>
+    <h2 class="rv">Onde o raciocínio vira artefato.</h2>
+    <div class="mods rv">
+      <div class="mod"><div class="n">LAB / 01</div><div class="t">GitHub</div><div class="d">Código aberto, experimentos e ferramentas de análise de sistemas.</div></div>
+      <div class="mod"><div class="n">LAB / 02</div><div class="t">Documentação</div><div class="d">Registro técnico de decisões, padrões e aprendizados.</div></div>
+      <div class="mod"><div class="n">LAB / 03</div><div class="t">Visualização</div><div class="d">Sistemas complexos traduzidos em imagens compreensíveis.</div></div>
+      <div class="mod"><div class="n">LAB / 04</div><div class="t">Protótipos</div><div class="d">Hipóteses de arquitetura testadas antes de existirem.</div></div>
+      <div class="mod"><div class="n">LAB / 05</div><div class="t">Ecossistemas</div><div class="d">Modelos de organizações inteiras, observadas como organismos.</div></div>
+    </div>
+  </section>
+
+  <section id="b7">
+    <div class="eyebrow rv">07 — Arquivo</div>
+    <h2 class="rv">A memória da cartografia.</h2>
+    <div class="mods rv">
+      <div class="mod"><div class="n">ARQ / 01</div><div class="t">Diagramas</div><div class="d">Mapas de sistemas reais e hipotéticos.</div></div>
+      <div class="mod"><div class="n">ARQ / 02</div><div class="t">Artigos</div><div class="d">Ensaios sobre observação, complexidade e projeto.</div></div>
+      <div class="mod"><div class="n">ARQ / 03</div><div class="t">Arquiteturas</div><div class="d">Estruturas completas, documentadas do requisito à validação.</div></div>
+      <div class="mod"><div class="n">ARQ / 04</div><div class="t">Decisões</div><div class="d">O registro do porquê — não apenas do o quê.</div></div>
+      <div class="mod"><div class="n">ARQ / 05</div><div class="t">Documentação</div><div class="d">Tudo o que permite que o sistema seja compreendido por outros.</div></div>
+    </div>
+  </section>
+
+  <section id="fim">
+    <h2 class="rv">Todo sistema continua evoluindo.<br>A cartografia também.</h2>
+    <a class="back-cap1 rv" href="https://vzambelli.github.io/cartografia/">← Capítulo I — Sistemas Vivos</a>
+    <div class="sig rv">
+      <div class="name">Vitória Zambelli</div>
+      <div class="roles">Systems Engineering<br>Operational Architecture<br>Interactive Systems Visualization</div>
+    </div>
+  </section>
+</div>
+
+<script>
+// rede de fundo — projeção manual mesmo, three.js seria overkill pra isso
+// TODO: separar esse js num arquivo próprio quando o site crescer
+const canvas = document.getElementById('net');
+const ctx = canvas.getContext('2d');
+let w, h, dpr;
+
+function resize(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  w = canvas.width = innerWidth * dpr;
+  h = canvas.height = innerHeight * dpr;
+}
+addEventListener('resize', resize);
+resize();
+
+const QTD = 95;
+const nos = [];
+for (let i = 0; i < QTD; i++){
+  const raio = 0.55 + Math.random() * 0.45;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
+  nos.push({
+    x: raio * Math.sin(ph) * Math.cos(th),
+    y: (Math.random() - .5) * 1.1,
+    z: raio * Math.sin(ph) * Math.sin(th),
+    fase: Math.random() * Math.PI * 2,
+    cobre: Math.random() < 0.07
+  });
+}
+
+// liga cada nó aos 3 vizinhos mais próximos
+const links = [];
+for (let i = 0; i < QTD; i++){
+  const dist = [];
+  for (let j = 0; j < QTD; j++){
+    if (i === j) continue;
+    const dx = nos[i].x - nos[j].x, dy = nos[i].y - nos[j].y, dz = nos[i].z - nos[j].z;
+    dist.push([j, dx*dx + dy*dy + dz*dz]);
+  }
+  dist.sort((a, b) => a[1] - b[1]);
+  for (let k = 0; k < 3; k++){
+    const j = dist[k][0];
+    if (!links.some(l => l[0] === j && l[1] === i)) links.push([i, j]);
+  }
+}
+// console.log('links', links.length)
+
+const pacotes = [];
+for (let i = 0; i < 10; i++){
+  pacotes.push({ l: Math.floor(Math.random()*links.length), t: Math.random(), v: 0.002 + Math.random()*0.004 });
+}
+
+const semAnimacao = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let ang = 0;
+
+function proj(p){
+  const cy = Math.cos(ang), sy = Math.sin(ang);
+  const x = p.x*cy + p.z*sy;
+  const z = -p.x*sy + p.z*cy;
+  const tilt = 0.28; // inclina um pouco a "esfera", de frente fica chapado
+  const y = p.y*Math.cos(tilt) - z*Math.sin(tilt);
+  const z2 = p.y*Math.sin(tilt) + z*Math.cos(tilt);
+  const f = 2.2 / (2.2 + z2);
+  return { x: w/2 + x*f*Math.min(w,h)*0.42, y: h/2 + y*f*Math.min(w,h)*0.42, f };
+}
+
+function desenha(t){
+  if (!semAnimacao) ang += 0.00045;
+  ctx.clearRect(0, 0, w, h);
+  const pts = nos.map(proj);
+
+  ctx.lineWidth = dpr * 0.6;
+  for (const [a, b] of links){
+    const A = pts[a], B = pts[b];
+    ctx.strokeStyle = 'rgba(90,120,165,' + (0.10 + 0.12*Math.min(A.f, B.f)) + ')';
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  }
+
+  for (const p of pacotes){
+    p.t += semAnimacao ? 0 : p.v;
+    if (p.t > 1){ p.t = 0; p.l = Math.floor(Math.random()*links.length); }
+    const [a, b] = links[p.l], A = pts[a], B = pts[b];
+    ctx.fillStyle = 'rgba(192,138,78,0.85)';
+    ctx.beginPath();
+    ctx.arc(A.x + (B.x-A.x)*p.t, A.y + (B.y-A.y)*p.t, 1.6*dpr, 0, 7);
+    ctx.fill();
+  }
+
+  nos.forEach((n, i) => {
+    const p = pts[i];
+    const resp = semAnimacao ? 1 : (1 + 0.25*Math.sin(t*0.0012 + n.fase));
+    const r = (n.cobre ? 2.1 : 1.4) * dpr * p.f * resp;
+    ctx.fillStyle = n.cobre ? 'rgba(192,138,78,.9)' : 'rgba(230,234,240,' + (0.35 + 0.45*p.f) + ')';
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  });
+
+  requestAnimationFrame(desenha);
+}
+requestAnimationFrame(desenha);
+
+
+// sequencia da abertura
+const $ = id => document.getElementById(id);
+let entrou = false;
+
+function mostraSite(){
+  if (entrou) return;
+  entrou = true;
+  ['ph1','ph2','ph3'].forEach(i => $(i).classList.remove('show'));
+  $('intro').classList.add('gone');
+  $('skip').style.display = 'none';
+  canvas.classList.add('on');
+  $('site').classList.add('on');
+  document.body.style.overflow = '';
+}
+
+const timers = [];
+function em(ms, fn){ timers.push(setTimeout(fn, ms)) }
+
+document.body.style.overflow = 'hidden';
+if (semAnimacao){
+  mostraSite();
+} else {
+  em(1200,  () => $('spark').classList.add('live'));
+  em(3600,  () => { $('spark').style.opacity = 0; $('ph1').classList.add('show'); });
+  em(4200,  () => $('skip').classList.add('show'));
+  em(7400,  () => $('ph1').classList.remove('show'));
+  em(8200,  () => { $('intro').classList.add('gone'); canvas.classList.add('on'); });
+  em(9400,  () => $('ph2').classList.add('show'));
+  em(12800, () => $('ph2').classList.remove('show'));
+  em(13800, () => $('ph3').classList.add('show'));
+  em(17400, () => $('ph3').classList.remove('show'));
+  em(18600, mostraSite);
+}
+$('skip').addEventListener('click', () => { timers.forEach(clearTimeout); mostraSite(); });
+
+// aparece conforme rola
+const obs = new IntersectionObserver(entradas => {
+  entradas.forEach(e => {
+    if (e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }
+  });
+}, { threshold: 0.25 });
+document.querySelectorAll('.rv,.step,#dep-diagram').forEach(el => obs.observe(el));
+
+// bloco 1 - tirar as paredes
+const org = $('org'), tituloB1 = $('b1-title'), btnParedes = $('btn-walls');
+btnParedes.addEventListener('click', () => {
+  const raioX = org.classList.toggle('x-ray');
+  tituloB1.textContent = raioX ? 'Agora observe o sistema.' : 'Nenhuma organização é realmente plana.';
+  btnParedes.textContent = raioX ? 'Restaurar paredes' : 'Remover paredes';
+});
+
+// bloco 3 - slider de redundancia
+const slider = $('arch');
+const extras = document.querySelectorAll('#arch-extra path');
+const mTempo = $('m-time'), mRisco = $('m-risk'), mGarg = $('m-bott'), nucleo = $('bottleneck');
+
+slider.addEventListener('input', () => {
+  const v = slider.value / 100;
+  extras[0].style.opacity = v > 0.25 ? 0.7 : 0;
+  extras[1].style.opacity = v > 0.55 ? 0.7 : 0;
+  extras[2].style.opacity = v > 0.85 ? 0.7 : 0;
+
+  const horas = 14 + (1.5 - 14) * v;
+  mTempo.textContent = horas >= 2 ? Math.round(horas) + ' h' : Math.round(horas*60) + ' min';
+  mRisco.textContent = v < 0.34 ? 'Alto' : v < 0.72 ? 'Médio' : 'Baixo';
+  mGarg.textContent = v < 0.25 ? '3' : v < 0.55 ? '2' : v < 0.85 ? '1' : '0';
+  nucleo.setAttribute('fill', v > 0.85 ? 'var(--blue)' : 'var(--copper)');
+  nucleo.setAttribute('r', String(8 + (5-8)*v));
+});
+
+// bloco 4 - casos
+const casos = {
+  hospital:   ["Hospital", "Fluxos de pacientes, leitos, equipes e prontuários modelados como um único sistema — para que a decisão clínica nunca espere pela informação."],
+  logistica:  ["Empresa logística", "Rotas, frota, armazéns e janelas de entrega observados como uma malha viva, onde cada atraso revela sua origem real."],
+  escritorio: ["Escritório", "Processos, documentos e responsabilidades mapeados para que o conhecimento deixe de morar apenas na cabeça das pessoas."],
+  callcenter: ["Call Center", "Filas, turnos, scripts e sistemas de atendimento redesenhados a partir do que o cliente realmente atravessa."],
+  startup:    ["Startup", "Uma arquitetura que cresce junto com o produto — decisões registradas antes que virem dívida invisível."]
+};
+const painelCaso = $('case-view'), tCaso = $('case-title'), txtCaso = $('case-text');
+document.querySelectorAll('.planet').forEach(p => {
+  p.addEventListener('click', () => {
+    const c = casos[p.dataset.case];
+    tCaso.textContent = c[0];
+    txtCaso.textContent = c[1];
+    painelCaso.classList.add('show');
+  });
+});
+</script>
+</body>
+</html>
