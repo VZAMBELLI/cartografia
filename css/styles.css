@@ -129,6 +129,21 @@ canvas#field {
 }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 
+/* botão para o Capítulo II */
+.hud-next {
+  bottom: 30px;
+  right: 34px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-decoration: none;
+  transition: opacity 1.4s ease, color .35s ease;
+}
+.hud-next:hover { color: var(--ink); }
+.hud-next span { color: var(--gold); display: inline-block; transition: transform .35s ease; }
+.hud-next:hover span { transform: translateX(5px); }
+
 /* dica "observe" */
 #cue {
   position: fixed;
@@ -228,4 +243,5 @@ canvas#field {
   .readout { bottom: 190px; left: 20px; right: 20px; max-width: none; }
   .hud-brand, .hud-ver { left: 20px; }
   .hud-status { right: 20px; }
+  .hud-next { top: 74px; right: 20px; bottom: auto; }
 }
