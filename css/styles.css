@@ -1,12 +1,13 @@
 :root {
-  --bg: #060606;
-  --ink: #ededed;
-  --dim: #6c6c6c;
-  --gold: #c9a24b;
-  --gold-soft: rgba(201, 162, 75, 0.55);
-  --line: rgba(255, 255, 255, 0.08);
-  --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Menlo", monospace;
+  --bg: #03050a;
+  --ink: #f4f4f1;
+  --dim: #8b93a1;
+  --gold: #c08a4e;
+  --gold-soft: rgba(192, 138, 78, 0.55);
+  --line: rgba(244, 244, 241, 0.08);
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --display: "Spectral", Georgia, "Times New Roman", serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -223,10 +224,11 @@ canvas#field {
   margin-bottom: 12px;
 }
 .readout .t {
-  font-size: 21px;
-  font-weight: 300;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
+  font-family: var(--display);
+  font-size: 23px;
+  font-weight: 200;
+  line-height: 1.4;
+  letter-spacing: 0;
   color: var(--ink);
 }
 .readout .d {

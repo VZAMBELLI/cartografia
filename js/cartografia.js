@@ -1,6 +1,6 @@
 "use strict";
 
-// Rede viva desenhada em canvas: nós que surgem, derivam e reagem ao ponteiro.
+// Rede viva desenhada em canvas: nos que surgem, derivam e reagem ao ponteiro.
 
 const canvas = document.getElementById("field");
 const ctx = canvas.getContext("2d");
@@ -17,7 +17,7 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-// ponteiro com inércia
+// ponteiro com inercia
 const pointer = { x: W / 2, y: H / 2, tx: W / 2, ty: H / 2, active: false, moved: false };
 function setPointer(x, y) {
   pointer.tx = x; pointer.ty = y; pointer.active = true;
@@ -47,7 +47,7 @@ const CONCEPTS = [
 
 let activeConcept = null;
 
-// campo 2.5D: z (0..1) define a profundidade de cada nó
+// campo 2.5D: z (0..1) define a profundidade de cada no
 const NODE_TARGET = () => {
   const a = W * H;
   return Math.max(60, Math.min(150, Math.round(a / 12000)));
@@ -60,14 +60,14 @@ function rand(a, b) { return a + Math.random() * (b - a); }
 
 function makeNode(x, y) {
   return {
-    hx: x, hy: y,            // posição base
+    hx: x, hy: y,            // posicao base
     x, y,                    // atual
     z: rand(0, 1),           // profundidade
     ph: rand(0, Math.PI * 2),// fase da deriva
     sp: rand(0.15, 0.5),     // velocidade da deriva
     amp: rand(6, 22),        // amplitude da deriva
-    energy: 0,               // excitação 0..1
-    alive: 1,                // 1 vivo, anima até 0 quando "morto"
+    energy: 0,               // excitacao 0..1
+    alive: 1,                // 1 vivo, anima ate 0 quando "morto"
     born: 0,                 // progresso de surgimento
     r: rand(1.1, 2.6),
     kind: Math.random() < 0.12 ? "hub" : "node",
@@ -78,7 +78,7 @@ function buildField() {
   nodes.length = 0;
   edges.length = 0;
   const N = NODE_TARGET();
-  // agrupa os nós em torno de alguns centros
+  // agrupa os nos em torno de alguns centros
   const wells = [];
   const wellCount = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < wellCount; i++) {
@@ -94,7 +94,7 @@ function buildField() {
     y = Math.max(30, Math.min(H - 30, y));
     nodes.push(makeNode(x, y));
   }
-  // liga cada nó a alguns vizinhos próximos
+  // liga cada no a alguns vizinhos proximos
   const maxD = Math.min(W, H) * 0.16;
   for (let i = 0; i < nodes.length; i++) {
     let links = 0;
@@ -119,7 +119,7 @@ function buildAdjacency() {
   });
 }
 
-// surgimento: revela os nós do centro para fora
+// surgimento: revela os nos do centro para fora
 let birth = { active: false, order: [], idx: 0, t: 0 };
 
 function beginBirth() {
@@ -132,12 +132,12 @@ function beginBirth() {
   birth = { active: true, order, idx: 0, t: 0 };
 }
 
-// ondas de propagação que percorrem as arestas
+// ondas de propagacao que percorrem as arestas
 let waves = [];
 let sceneTimer = 0;
 
 function pulseAt(px, py) {
-  // dispara a onda a partir do nó mais próximo do clique
+  // dispara a onda a partir do no mais proximo do clique
   let best = -1, bd = 1e9;
   for (let i = 0; i < nodes.length; i++) {
     const d = Math.hypot(nodes[i].x - px, nodes[i].y - py);
@@ -176,14 +176,14 @@ function stepWaves(dt) {
   waves = waves.filter(w => w.frontier.length > 0 && w.age < 6);
 }
 
-// animação específica de cada comportamento
+// animacao especifica de cada comportamento
 function runScene(dt) {
   sceneTimer += dt;
   if (!activeConcept) return;
   const id = activeConcept.id;
 
   if (id === "entrada") {
-    // sinais entram pelas bordas em direção ao interior
+    // sinais entram pelas bordas em direcao ao interior
     if (sceneTimer > 0.55) {
       sceneTimer = 0;
       let edge = -1, bd = -1;
@@ -200,13 +200,13 @@ function runScene(dt) {
       igniteWave(Math.floor(Math.random() * nodes.length), 1);
     }
   } else if (id === "transformacao") {
-    // excitação contínua: estado sempre mudando
+    // excitacao continua: estado sempre mudando
     if (sceneTimer > 0.32) {
       sceneTimer = 0;
       igniteWave(Math.floor(Math.random() * nodes.length), 0.55);
     }
   } else if (id === "resiliencia") {
-    // mata um nó e força o fluxo a achar outro caminho
+    // mata um no e forca o fluxo a achar outro caminho
     if (sceneTimer > 2.2) {
       sceneTimer = 0;
       killRandomNode();
@@ -283,7 +283,7 @@ function selectConcept(c) {
 
 let dependencyChain = null;
 function highlightDependency() {
-  // traça uma cadeia de dependências a partir do hub mais conectado
+  // traca uma cadeia de dependencias a partir do hub mais conectado
   const hub = nodes.map((n,i)=>i).sort((a,b)=> adj[b].length - adj[a].length)[0] || 0;
   const chain = new Set([hub]);
   let frontier = [hub];
@@ -309,7 +309,7 @@ function frame(now) {
   pointer.x += (pointer.tx - pointer.x) * 0.08;
   pointer.y += (pointer.ty - pointer.y) * 0.08;
 
-  // a câmera desliza no sentido contrário ao ponteiro, dando profundidade
+  // a camera desliza no sentido contrario ao ponteiro, dando profundidade
   const px = (pointer.x / W - 0.5);
   const py = (pointer.y / H - 0.5);
   cam.x += (px * -26 - cam.x) * 0.04;
@@ -338,13 +338,13 @@ function update(dt, now) {
   const t = now / 1000;
   for (const n of nodes) {
     if (n.bornTarget) n.born += (1 - n.born) * 0.06;
-    // deriva orgânica
+    // deriva organica
     const dx = Math.cos(t * n.sp + n.ph) * n.amp * (0.4 + n.z);
     const dy = Math.sin(t * n.sp * 1.1 + n.ph) * n.amp * (0.4 + n.z);
     let tx = n.hx + dx;
     let ty = n.hy + dy;
 
-    // excitação e leve atração pelo ponteiro
+    // excitacao e leve atracao pelo ponteiro
     const mdx = n.x - pointer.x, mdy = n.y - pointer.y;
     const md = Math.hypot(mdx, mdy);
     const R = 190;
@@ -375,7 +375,7 @@ function update(dt, now) {
 }
 
 function project(n) {
-  // a profundidade define escala e deslocamento pela câmera
+  // a profundidade define escala e deslocamento pela camera
   const depth = 0.5 + n.z;
   const ox = cam.x * (0.4 + n.z * 1.2);
   const oy = cam.y * (0.4 + n.z * 1.2);
@@ -413,13 +413,13 @@ function render(now) {
     const flow = e.flow;
     if (flow > 0.02) {
       baseAlpha += flow * 0.5;
-      stroke = "201,162,75";
+      stroke = "192,138,78";
       lw = 0.6 + flow * 1.4;
     }
 
     if (depMode) {
       const inChain = dependencyChain.has(e.a) && dependencyChain.has(e.b);
-      if (inChain) { stroke = "201,162,75"; baseAlpha = 0.55; lw = 1.2; }
+      if (inChain) { stroke = "192,138,78"; baseAlpha = 0.55; lw = 1.2; }
       else { baseAlpha *= 0.25; }
     }
 
@@ -430,19 +430,19 @@ function render(now) {
     ctx.lineTo(pb.x, pb.y);
     ctx.stroke();
 
-    // pulso que viaja pela aresta quando há fluxo
+    // pulso que viaja pela aresta quando ha fluxo
     if (flow > 0.06) {
       const tt = (now / 400 + e.base) % 1;
       const fx = pa.x + (pb.x - pa.x) * tt;
       const fy = pa.y + (pb.y - pa.y) * tt;
-      ctx.fillStyle = `rgba(201,162,75,${(flow * 0.9).toFixed(3)})`;
+      ctx.fillStyle = `rgba(192,138,78,${(flow * 0.9).toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(fx, fy, 1.4 + flow, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  // nós, do fundo para a frente
+  // nos, do fundo para a frente
   const order = nodes.map((n,i)=>i).sort((a,b)=> nodes[a].z - nodes[b].z);
   for (const i of order) {
     const n = nodes[i];
@@ -457,20 +457,20 @@ function render(now) {
     let inChainDim = 1;
     if (depMode) inChainDim = dependencyChain.has(i) ? 1 : 0.22;
 
-    // halo quando o nó está energizado
+    // halo quando o no esta energizado
     if (energy > 0.03 || n.kind === "hub") {
       const glowR = baseR * (5 + energy * 10);
       const gg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
       const ga = (0.10 + energy * 0.5) * alive * inChainDim;
-      gg.addColorStop(0, `rgba(201,162,75,${ga.toFixed(3)})`);
-      gg.addColorStop(1, "rgba(201,162,75,0)");
+      gg.addColorStop(0, `rgba(192,138,78,${ga.toFixed(3)})`);
+      gg.addColorStop(1, "rgba(192,138,78,0)");
       ctx.fillStyle = gg;
       ctx.beginPath();
       ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // núcleo (branco -> dourado conforme a energia)
+    // nucleo (branco -> cobre conforme a energia)
     const goldMix = Math.min(1, energy * 1.4);
     const cr = Math.round(237 - goldMix * (237 - 201));
     const cg = Math.round(237 - goldMix * (237 - 162));
@@ -481,9 +481,9 @@ function render(now) {
     ctx.arc(p.x, p.y, Math.max(0.4, baseR), 0, Math.PI * 2);
     ctx.fill();
 
-    // observabilidade: anel de telemetria nos hubs / nós ativos
+    // observabilidade: anel de telemetria nos hubs / nos ativos
     if (observabilityOn() && (n.kind === "hub" || energy > 0.25)) {
-      ctx.strokeStyle = `rgba(201,162,75,${(0.35 * alive).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(192,138,78,${(0.35 * alive).toFixed(3)})`;
       ctx.lineWidth = 0.6;
       ctx.beginPath();
       ctx.arc(p.x, p.y, baseR + 5 + (now/600 % 6), 0, Math.PI * 2);
@@ -506,7 +506,7 @@ function buildSpine() {
 let cueShown = false, firstMoved = false;
 function onFirstMove() {
   firstMoved = true;
-  // "OBSERVE." só aparece depois do primeiro movimento, e some
+  // "OBSERVE." so aparece depois do primeiro movimento, e some
   if (!cueShown) {
     cueShown = true;
     const cue = document.getElementById("cue");
@@ -526,7 +526,7 @@ function boot() {
     document.querySelectorAll(".hud").forEach(h => h.classList.add("in"));
   }, 3700);
 
-  // se o visitante não mexer o mouse, revela a espinha mesmo assim
+  // se o visitante nao mexer o mouse, revela a espinha mesmo assim
   setTimeout(() => {
     if (!firstMoved) document.getElementById("spine").classList.add("in");
   }, 8000);
