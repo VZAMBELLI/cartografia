@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Vitória Zambelli">
+<meta name="description" content="Ponto Cego / Caso 001 — um terminal portuário em colapso de coordenação. Simulação interativa de engenharia.">
+<title>Ponto Cego — Caso 001</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@200;300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03050a;
+  --ink:#f4f4f1;
+  --dim:#8b93a1;
+  --faint:#565d69;
+  --copper:#c08a4e;
+  --ambar:#d9a03f;
+  --display:'Spectral',serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow-x:hidden}
+::selection{background:rgba(192,138,78,.35)}
+
+#stage{position:fixed;inset:0;z-index:1;perspective:1400px;overflow:hidden}
+#mundo{position:absolute;inset:-7vh -5vw;transform:rotateX(12deg);will-change:transform}
+#cena{width:100%;height:100%;display:block}
+#vinheta{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 44%, transparent 40%, rgba(2,3,6,.9) 100%);
+}
+.veu{position:absolute;inset:0;background:#010204;opacity:0;transition:opacity 1.8s ease;pointer-events:none}
+
+.hud{position:absolute;z-index:5;font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+#barra{
+  top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+  padding:20px 3vw;
+  background:linear-gradient(to bottom,rgba(3,5,10,.92),transparent);
+}
+#barra .lado{display:flex;align-items:center;gap:26px}
+#barra a{color:var(--dim);text-decoration:none}
+#barra a:hover{color:var(--ink)}
+#btn-som{background:none;border:none;color:var(--faint);cursor:pointer;font-family:var(--mono);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase}
+#btn-som.on{color:var(--copper)}
+#relogio{font-size:1.15rem;letter-spacing:.42em;color:var(--ink);font-variant-numeric:tabular-nums;padding-left:.42em}
+#status{display:flex;align-items:center;gap:10px}
+#status .luz{width:6px;height:6px;border-radius:50%;background:#5a78a5;transition:background .8s ease;box-shadow:0 0 12px currentColor}
+#status.alerta .luz{background:var(--ambar)}
+#status.falha .luz{background:#3a4150}
+#status.projeto .luz{background:var(--copper)}
+
+#legenda{
+  bottom:36px;left:3vw;max-width:38ch;z-index:5;position:absolute;
+  font-family:var(--display);font-weight:200;
+  font-size:clamp(1.15rem,2.1vw,1.7rem);line-height:1.55;color:var(--ink);
+  opacity:0;transition:opacity 1.2s ease;
+  text-shadow:0 2px 24px rgba(2,3,6,.9);
+}
+#legenda.on{opacity:1}
+#legenda small{display:block;margin-top:.9rem;font-family:var(--mono);font-size:.58rem;letter-spacing:.24em;text-transform:uppercase;color:var(--dim)}
+
+#controles{
+  position:absolute;bottom:120px;left:50%;transform:translate(-50%,14px);z-index:5;
+  display:flex;gap:10px;opacity:0;pointer-events:none;
+  transition:opacity .9s ease,transform .9s ease;
+}
+#controles.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#controles button{
+  background:rgba(3,5,10,.75);border:1px solid rgba(244,244,241,.18);color:var(--dim);
+  padding:11px 20px;cursor:pointer;font-family:var(--mono);
+  font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
+  transition:all .35s ease;backdrop-filter:blur(4px);
+}
+#controles button:hover{color:var(--ink)}
+#controles button.ativo{border-color:var(--copper);color:var(--copper)}
+#controles button#btn-sim{border-color:rgba(192,138,78,.5);color:var(--copper);display:none}
+#controles.com-sim button#btn-sim{display:block}
+
+#capa{
+  position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:0 8vw;
+  background:var(--bg);transition:opacity 1.6s ease;
+}
+#capa.some{opacity:0;pointer-events:none}
+#capa h1{font-family:var(--display);font-weight:200;font-size:clamp(1.6rem,3.4vw,2.9rem);line-height:1.55;max-width:24em}
+#capa .tag{margin-top:3rem;font-size:.64rem;letter-spacing:.3em;color:var(--copper);line-height:2.2;text-transform:uppercase}
+#capa .aviso{position:absolute;bottom:11vh;font-size:.56rem;letter-spacing:.1em;color:var(--faint);max-width:54em;line-height:1.9}
+#capa .rolar{position:absolute;bottom:4.5vh;font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);animation:pisca 2.8s ease-in-out infinite}
+@keyframes pisca{0%,100%{opacity:.25}50%{opacity:.9}}
+
+#trilho{position:relative;z-index:2}
+#trilho section{height:140vh}
+
+#fim{
+  position:relative;z-index:20;background:var(--bg);
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:14vh 8vw;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+#fim h2{font-family:var(--display);font-weight:200;font-size:clamp(1.7rem,3.2vw,2.7rem);line-height:1.55;max-width:22em}
+#fim .acoes{display:flex;gap:12px;margin-top:4rem;flex-wrap:wrap;justify-content:center}
+#fim .acoes a,#fim .acoes button{
+  background:none;border:1px solid rgba(244,244,241,.18);color:var(--dim);
+  padding:12px 24px;cursor:pointer;font-family:var(--mono);font-size:.6rem;
+  letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:all .35s ease;
+}
+#fim .acoes a:hover,#fim .acoes button:hover{color:var(--copper);border-color:rgba(192,138,78,.5)}
+#fim .sig{margin-top:5rem;font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:var(--faint);line-height:2.4}
+
+@media (max-width:820px){
+  #relogio{font-size:.9rem}
+  #legenda{bottom:15vh;font-size:1.05rem;max-width:82vw}
+  #controles{bottom:6vh;flex-wrap:wrap;justify-content:center;width:94vw}
+  #mundo{transform:rotateX(8deg)}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="mundo"><canvas id="cena"></canvas></div>
+  <div id="vinheta"></div>
+  <div class="veu" id="veu"></div>
+
+  <div class="hud" id="barra">
+    <div class="lado">
+      <a href="../../">CARTOGRAFIA · PONTO CEGO / 001</a>
+      <button id="btn-som">som off</button>
+    </div>
+    <div id="relogio">06:00</div>
+    <div id="status"><span class="luz"></span><span id="status-txt">AGUARDANDO</span></div>
+  </div>
+  <div id="legenda"><span id="legenda-txt"></span><small id="legenda-sub"></small></div>
+
+  <div id="controles">
+    <button data-arq="original">Original</button>
+    <button data-arq="a">Engenharia A</button>
+    <button data-arq="b">Engenharia B</button>
+    <button id="btn-sim">Simular falha</button>
+  </div>
+</div>
+
+<!-- indice do album -->
+<style>
+#indice a{text-decoration:none;display:block;color:#565d69;transition:color .3s}
+#indice a:hover{color:#f4f4f1}
+#indice a.aqui{color:#c08a4e}
+</style>
+<nav id="indice" style="position:fixed;right:26px;bottom:24px;z-index:9;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;text-align:right;line-height:2.6">
+  <a href="../../">I — Sistemas Vivos</a>
+  <a href="../../ii/">II — Ponto Cego</a>
+  <a href="./" class="aqui">Caso 001 — O Porto</a>
+</nav>
+
+<div id="capa">
+  <h1>Nem todo colapso começa com uma explosão.<br>Alguns começam com uma mensagem que não chega.</h1>
+  <div class="tag">Ponto Cego / Caso 001<br>Terminal Portuário Meridian — modelo de simulação</div>
+  <p class="aviso">Simulação técnica. Organizações, eventos, métricas e valores são fictícios, criados para demonstração de engenharia.</p>
+  <div class="rolar">Role para iniciar a simulação</div>
+</div>
+
+<div id="trilho">
+  <section></section><section></section><section></section><section></section>
+  <section></section><section></section><section></section><section></section>
+  <section></section><section></section><section></section><section></section>
+  <section></section>
+</div>
+
+<section id="fim">
+  <h2>Resiliência não é ausência de falhas.<br>É a capacidade de continuar operando quando elas chegam.</h2>
+  <div class="acoes">
+    <button id="btn-reiniciar">Reiniciar simulação</button>
+    <a href="../../ii/">Capítulo II</a>
+    <a href="../../">Voltar ao álbum</a>
+    <a href="https://github.com/vzambelli/cartografia">Ver código</a>
+  </div>
+  <div class="sig">Cartografia Operacional · Ponto Cego / Caso 001<br>Arquitetura de comunicação · Continuidade operacional · Engenharia de sistemas</div>
+</section>
+
+<script>
+// caso 001 — terceiro redesenho: territorio, escala e causalidade.
+// tres planos: territorio fisico, operacao (maquinas), sistema invisivel.
+// a regra: nada de dizer "atrasou" — o guindaste ESPERA, o caminhao PARA.
+// TODO: quebrar em modulos quando comecar o caso 002
+
+const cv = document.getElementById('cena');
+const ctx = cv.getContext('2d');
+const mundo = document.getElementById('mundo');
+const veu = document.getElementById('veu');
+let W, H;
+
+function mede(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = cv.width = mundo.clientWidth * dpr;
+  H = cv.height = mundo.clientHeight * dpr;
+}
+addEventListener('resize', mede);
+
+const semAnimacao = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// mapa do territorio, 1000x700
+// setores ancorados nas estruturas fisicas; o nucleo de comunicacao mora no "subsolo"
+const nos = {
+  navio:      {x:268, y:118, nome:'NAVIO'},
+  torre:      {x:120, y:292, nome:'TORRE'},
+  guindastes: {x:305, y:288, nome:'GUINDASTES'},
+  patio:      {x:600, y:320, nome:'PÁTIO'},
+  portoes:    {x:836, y:308, nome:'GATES'},
+  transp:     {x:952, y:252, nome:'TRANSPORTADORAS'},
+  seguranca:  {x:876, y:436, nome:'SEGURANÇA'},
+  operacional:{x:400, y:452, nome:'CENTRO OPERACIONAL'},
+  despach:    {x:210, y:452, nome:'DESPACHANTES'},
+  radio:      {x:560, y:474, nome:'RÁDIO'},
+  rede:       {x:500, y:566, nome:'REDE', nucleo:1},
+  pbx:        {x:648, y:604, nome:'PBX / SBC', nucleo:1},
+  operadora:  {x:800, y:636, nucleo:1, nome:'OPERADORA'}
+};
+const extraA = {
+  pbxB:       {x:480, y:642, nome:'PBX / SBC B', nucleo:1},
+  operadoraB: {x:330, y:630, nome:'OPERADORA B', nucleo:1}
+};
+function pos(id){ return nos[id] || extraA[id]; }
+
+// quem fala com quem (a espinha central + operacao)
+const ligas = [
+  ['rede','torre'], ['rede','operacional'], ['rede','patio'],
+  ['rede','portoes'], ['rede','seguranca'], ['rede','despach'],
+  ['rede','pbx'], ['pbx','operadora'],
+  ['torre','navio'], ['torre','guindastes'], ['guindastes','patio'],
+  ['patio','portoes'], ['portoes','transp'], ['operacional','patio'],
+  ['operacional','torre'], ['despach','portoes'], ['seguranca','portoes']
+];
+const ligasA = [['operadoraB','pbxB'], ['pbxB','rede'], ['pbx','pbxB']];
+// rotas improvisadas via radio, aparecem na propagacao
+const improviso = [['torre','radio'], ['radio','patio'], ['despach','radio']];
+
+const zonas = [
+  {x:56,  y:56,  w:410, h:250, nome:'ZONA MARÍTIMA'},
+  {x:320, y:300, w:400, h:206, nome:'ZONA PÁTIO'},
+  {x:762, y:236, w:226, h:250, nome:'ZONA GATES'}
+];
+
+// estado geral da simulacao
+const S = {
+  fisico:1, fisicoAlvo:1,
+  sistema:1, sistemaAlvo:1,      // opacidade da camada invisivel
+  vel:1, velAlvo:1,
+  maquinas:1, maquinasAlvo:1,
+  dimAlvo:0,
+  aneis:0, aneisAlvo:0,
+  zonas:0, zonasAlvo:0,
+  extraA:0, extraAAlvo:0,
+  cegos:0, cegosAlvo:0,
+  improviso:0, improvisoAlvo:0,
+  converge:0, convergeAlvo:0,    // cena da cartografia: tudo aponta pro pbx
+  perda:0,                       // chance de mensagem morrer no caminho
+  retencao:0,                    // chance de mensagem ficar presa no pbx
+  confPeriodo:1300,              // ritmo das confirmacoes (gate + guindastes)
+  particulas:true,
+  nosAlerta:new Set(), nosFalha:new Set(),
+  ligasAlerta:new Set(), ligasMortas:new Set(), ligasRota:new Set()
+};
+const cam = {x:500, y:360, z:1, xA:500, yA:360, zA:1};
+function alvoCam(o){ cam.xA=o.x; cam.yA=o.y; cam.zA=o.z; }
+function limpa(){
+  S.fisicoAlvo=1; S.sistemaAlvo=1; S.velAlvo=1; S.maquinasAlvo=1; S.dimAlvo=0;
+  S.aneisAlvo=0; S.zonasAlvo=0; S.extraAAlvo=0; S.cegosAlvo=0;
+  S.improvisoAlvo=0; S.convergeAlvo=0;
+  S.perda=0; S.retencao=0; S.confPeriodo=1300; S.particulas=true;
+  S.nosAlerta.clear(); S.nosFalha.clear();
+  S.ligasAlerta.clear(); S.ligasMortas.clear(); S.ligasRota.clear();
+}
+
+// atores: mensagens, caminhoes, gruas
+// mensagens (com rastro, morte e retencao)
+const msgs = [];
+for (let i = 0; i < 26; i++){
+  msgs.push({ l:Math.floor(Math.random()*ligas.length), t:Math.random(), v:0.004+Math.random()*0.004, hist:[] });
+}
+const mortes = [];   // marquinhas de mensagem perdida
+let retidas = 0;     // mensagens presas no pbx
+
+// caminhoes
+const estrada = [{x:1020,y:392},{x:930,y:382},{x:852,y:372},{x:800,y:362},{x:720,y:352},{x:640,y:346}];
+const GATE_T = 0.42; // fracao do caminho onde fica a cancela
+const caminhoes = [];
+let tSpawn = 0;
+function pontoEstrada(t){
+  const n = estrada.length-1;
+  const i = Math.min(n-1, Math.floor(t*n));
+  const f = t*n - i;
+  const a = estrada[i], b = estrada[i+1];
+  return {x:a.x+(b.x-a.x)*f, y:a.y+(b.y-a.y)*f};
+}
+
+// cancela do gate + guindastes esperando confirmacao
+let cancelaAte = 0;      // aberta até esse timestamp
+let confTimer = 0;
+const gruas = [
+  {bx:215, fase:0,   esperando:false},
+  {bx:315, fase:2.2, esperando:false},
+  {bx:415, fase:4.1, esperando:false}
+];
+let esperaNavio = 0; // minutos acumulados de espera do navio
+
+// audio ambiente (só liga se pedirem)
+let audio = null;
+function ligaAudio(){
+  const ac = new (window.AudioContext||window.webkitAudioContext)();
+  const ganho = ac.createGain(); ganho.gain.value = 0.05; ganho.connect(ac.destination);
+  const filtro = ac.createBiquadFilter(); filtro.type='lowpass'; filtro.frequency.value=220; filtro.connect(ganho);
+  const o1 = ac.createOscillator(); o1.frequency.value=54; o1.connect(filtro); o1.start();
+  const o2 = ac.createOscillator(); o2.frequency.value=54.7; o2.connect(filtro); o2.start();
+  return { ac, ganho,
+    grave(v){ o1.frequency.linearRampToValueAtTime(v, ac.currentTime+2); o2.frequency.linearRampToValueAtTime(v+.7, ac.currentTime+2); },
+    volume(v){ ganho.gain.linearRampToValueAtTime(v, ac.currentTime+1.2); },
+    blip(f){ const o=ac.createOscillator(), g=ac.createGain();
+      o.frequency.value=f||640; g.gain.value=0.03;
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime+.25);
+      o.connect(g); g.connect(ganho); o.start(); o.stop(ac.currentTime+.3); }
+  };
+}
+document.getElementById('btn-som').addEventListener('click', function(){
+  if (!audio){ audio = ligaAudio(); this.textContent='som on'; this.classList.add('on'); }
+  else if (audio.ac.state==='running'){ audio.ac.suspend(); this.textContent='som off'; this.classList.remove('on'); }
+  else { audio.ac.resume(); this.textContent='som on'; this.classList.add('on'); }
+});
+
+// plano 1: territorio
+function suave(a,b,k){ return a+(b-a)*k }
+
+function agua(t, esc){
+  const g = ctx.createLinearGradient(0,0,0,250);
+  g.addColorStop(0,'rgba(90,120,165,.10)');
+  g.addColorStop(1,'rgba(90,120,165,.02)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-300,-260,1600,500);
+  ctx.strokeStyle = 'rgba(120,150,195,.13)';
+  ctx.lineWidth = 1/esc;
+  for (let i=0;i<7;i++){
+    ctx.beginPath();
+    for (let x=-260;x<=1300;x+=16){
+      const y = 26+i*30 + Math.sin(x*0.018 + t*0.0007 + i*1.6)*3.4;
+      x===-260 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  // cais
+  ctx.strokeStyle = 'rgba(150,160,175,.55)';
+  ctx.lineWidth = 2/esc;
+  ctx.beginPath(); ctx.moveTo(-260,240); ctx.lineTo(1300,240); ctx.stroke();
+  ctx.lineWidth = 1/esc;
+  // defensas do cais
+  ctx.strokeStyle = 'rgba(150,160,175,.3)';
+  for (let x=80;x<620;x+=54){ ctx.beginPath(); ctx.moveTo(x,240); ctx.lineTo(x,247); ctx.stroke(); }
+  // neblina no horizonte
+  const fog = ctx.createLinearGradient(0,-60,0,90);
+  fog.addColorStop(0,'rgba(139,147,161,.09)');
+  fog.addColorStop(1,'rgba(139,147,161,0)');
+  ctx.fillStyle = fog;
+  ctx.fillRect(-300,-80,1600,180);
+}
+
+function navio(t){
+  const bob = Math.sin(t*0.0008)*2.2*Math.max(S.maquinas,0.15);
+  ctx.save(); ctx.translate(0,bob);
+  // casco grande, atracado
+  ctx.fillStyle = 'rgba(16,22,32,.92)';
+  ctx.strokeStyle = 'rgba(170,178,190,.6)';
+  ctx.beginPath();
+  ctx.moveTo(130,176); ctx.lineTo(430,176); ctx.lineTo(452,206); ctx.lineTo(430,234); ctx.lineTo(150,234); ctx.lineTo(118,206);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // linha d'agua
+  ctx.strokeStyle = 'rgba(90,120,165,.4)';
+  ctx.beginPath(); ctx.moveTo(126,222); ctx.lineTo(444,222); ctx.stroke();
+  // conteineres no conves
+  ctx.strokeStyle = 'rgba(170,178,190,.45)';
+  for (let i=0;i<7;i++){
+    ctx.strokeRect(168+i*32, 158, 28, 16);
+    if (i%2) ctx.strokeRect(168+i*32, 142, 28, 14);
+  }
+  // castelo de popa
+  ctx.fillStyle = 'rgba(22,28,40,.95)';
+  ctx.fillRect(396,132,34,44); ctx.strokeRect(396,132,34,44);
+  ctx.strokeRect(402,138,22,8);
+  // luz do mastro
+  ctx.fillStyle = 'rgba(192,138,78,.9)';
+  ctx.beginPath(); ctx.arc(413,124,1.8+Math.sin(t*0.004)*0.7,0,7); ctx.fill();
+  ctx.restore();
+  // espera acumulada — a informacao mora do lado do navio, nao num painel
+  if (esperaNavio > 4){
+    ctx.fillStyle = 'rgba(217,160,63,.85)';
+    ctx.font = '11px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+    ctx.fillText('espera +' + Math.floor(esperaNavio/60) + 'h' + String(Math.floor(esperaNavio%60)).padStart(2,'0'), 462, 208);
+  }
+}
+
+function grua(g, t){
+  // portico sobre o cais, lanca por cima do navio
+  ctx.strokeStyle = 'rgba(170,178,190,.55)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(g.bx, 240); ctx.lineTo(g.bx, 96);          // torre
+  ctx.moveTo(g.bx+16, 240); ctx.lineTo(g.bx+16, 120);   // segunda perna
+  ctx.moveTo(g.bx-96, 96); ctx.lineTo(g.bx+42, 96);     // lanca
+  ctx.moveTo(g.bx, 120); ctx.lineTo(g.bx-40, 96);       // tirante
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  // carrinho + spreader + conteiner
+  const ciclo = g.fase;
+  const carro = g.bx - 76 + (Math.sin(ciclo)*0.5+0.5)*104;
+  const cabo  = 26 + (Math.sin(ciclo*0.9+1.3)*0.5+0.5)*58;
+  ctx.beginPath(); ctx.moveTo(carro,96); ctx.lineTo(carro,96+cabo); ctx.stroke();
+  ctx.strokeRect(carro-13, 96+cabo, 26, 11);
+  // esperando confirmacao: um ponto branco pisca em cima da carga
+  if (g.esperando){
+    const a = 0.4+0.5*Math.abs(Math.sin(t*0.006));
+    ctx.fillStyle = 'rgba(244,244,241,'+a+')';
+    ctx.beginPath(); ctx.arc(carro, 88+cabo, 2.4, 0, 7); ctx.fill();
+  }
+}
+
+function patioFisico(){
+  ctx.strokeStyle = 'rgba(170,178,190,.4)';
+  ctx.fillStyle = 'rgba(15,20,30,.7)';
+  // fileiras do patio, escala de verdade
+  for (let ry=0; ry<4; ry++){
+    for (let cx=0; cx<8; cx++){
+      const x = 470+cx*34, y = 300+ry*22;
+      if ((cx*7+ry*3)%5 === 0) continue;  // buracos, patio real nao é cheio
+      ctx.fillRect(x,y,28,12); ctx.strokeRect(x,y,28,12);
+    }
+  }
+  // torre de controle
+  ctx.fillStyle = 'rgba(22,28,40,.95)';
+  ctx.fillRect(96,258,44,52); ctx.strokeRect(96,258,44,52);
+  ctx.strokeRect(90,246,56,14);
+  ctx.beginPath(); ctx.moveTo(118,246); ctx.lineTo(118,228); ctx.stroke();
+  // centro operacional
+  ctx.fillRect(356,430,86,38); ctx.strokeRect(356,430,86,38);
+  ctx.strokeRect(368,442,16,10); ctx.strokeRect(396,442,16,10);
+  // predio despacho
+  ctx.fillRect(178,432,60,34); ctx.strokeRect(178,432,60,34);
+}
+
+function gates(t){
+  ctx.strokeStyle = 'rgba(170,178,190,.45)';
+  // estrada
+  ctx.setLineDash([3,7]);
+  ctx.beginPath();
+  ctx.moveTo(estrada[0].x, estrada[0].y);
+  for (const p of estrada.slice(1)) ctx.lineTo(p.x,p.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // guarita
+  ctx.fillStyle = 'rgba(22,28,40,.95)';
+  ctx.fillRect(842,330,26,22); ctx.strokeRect(842,330,26,22);
+  // cancela: fecha na horizontal, abre a 60 graus
+  const aberta = performance.now() < cancelaAte;
+  const ang = aberta ? -1.05 : 0;
+  const px = 852, py = 368;
+  ctx.strokeStyle = aberta ? 'rgba(192,138,78,.9)' : 'rgba(217,160,63,.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px,py);
+  ctx.lineTo(px + Math.cos(ang)*-30, py + Math.sin(ang)*-30);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+}
+
+function tickCaminhoes(dt){
+  tSpawn -= dt;
+  if (tSpawn <= 0 && caminhoes.length < 16){
+    caminhoes.push({t:0, v:0.00013});
+    tSpawn = 1500 + Math.random()*1400;
+  }
+  const aberta = performance.now() < cancelaAte;
+  for (let i=0;i<caminhoes.length;i++){
+    const c = caminhoes[i];
+    let limite = 1.01;
+    if (!aberta && c.t < GATE_T){
+      // para na cancela; os de tras param atras dele
+      let naFrente = 0;
+      for (let j=0;j<i;j++) if (caminhoes[j].t < GATE_T) naFrente++;
+      limite = GATE_T - naFrente*0.052;
+    }
+    if (c.t < limite) c.t += c.v*dt*Math.max(S.maquinas,0.25);
+  }
+  for (let i=caminhoes.length-1;i>=0;i--) if (caminhoes[i].t>=1) caminhoes.splice(i,1);
+}
+function desenhaCaminhoes(){
+  ctx.fillStyle = 'rgba(190,196,206,.55)';
+  ctx.strokeStyle = 'rgba(190,196,206,.35)';
+  for (const c of caminhoes){
+    const p = pontoEstrada(Math.min(c.t,1));
+    ctx.fillRect(p.x-9,p.y-4.5,13,9);
+    ctx.strokeRect(p.x+4,p.y-3.5,5,7); // cabine
+  }
+  const fila = caminhoes.filter(c => c.t < GATE_T && c.t > GATE_T-0.5).length;
+  if (fila > 3){
+    ctx.fillStyle = 'rgba(217,160,63,.85)';
+    ctx.font = '11px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+    ctx.fillText('fila: ' + (fila*9 + Math.floor(fila*2.6)) + ' veículos', 872, 396);
+  }
+}
+
+// plano 3: o sistema invisivel
+function corNo(id){
+  if (S.nosFalha.has(id)) return {borda:'#2a2f38', miolo:'#0a0c10', texto:'#3d434d'};
+  if (S.nosAlerta.has(id)) return {borda:'#d9a03f', miolo:'rgba(217,160,63,.12)', texto:'#a9977a'};
+  const n = pos(id);
+  return {borda:n.nucleo?'#c08a4e':'#5a78a5', miolo:'#12161e', texto:'#8b93a1'};
+}
+function estiloLiga(id, alpha){
+  if (S.ligasRota.has(id)) return {cor:'rgba(192,138,78,'+0.95*alpha+')', larg:1.7, tra:[]};
+  if (S.ligasMortas.has(id)) return {cor:'rgba(60,66,78,'+0.3*alpha+')', larg:1, tra:[3,5]};
+  if (S.ligasAlerta.has(id)) return {cor:'rgba(217,160,63,'+0.5*alpha+')', larg:1, tra:[]};
+  return {cor:'rgba(90,120,165,'+0.3*alpha+')', larg:1, tra:[]};
+}
+
+function sistema(t, esc){
+  const a = S.sistema;
+  if (a < 0.02) return;
+
+  // divisa do subsolo de comunicacao
+  ctx.strokeStyle = 'rgba(139,147,161,'+0.14*a+')';
+  ctx.setLineDash([2,8]);
+  ctx.beginPath(); ctx.moveTo(60,530); ctx.lineTo(960,530); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(86,93,105,'+0.85*a+')';
+  ctx.font = '8.5px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+  ctx.fillText('INFRAESTRUTURA DE COMUNICAÇÃO', 62, 546);
+
+  // ligacoes
+  for (const [x,y] of ligas){
+    const id = x+'-'+y, st = estiloLiga(id, a);
+    const A = pos(x), B = pos(y);
+    ctx.strokeStyle = st.cor; ctx.lineWidth = st.larg/esc*1.2; ctx.setLineDash(st.tra);
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // convergencia (cena da cartografia): todos os fluxos apontando pro pbx
+  if (S.converge > 0.03){
+    ctx.strokeStyle = 'rgba(217,160,63,'+0.55*S.converge+')';
+    ctx.lineWidth = 1.5/esc;
+    const alvo = nos.pbx;
+    for (const id of ['torre','patio','portoes','seguranca','despach','guindastes','operacional']){
+      const n = nos[id];
+      ctx.beginPath();
+      ctx.moveTo(n.x, n.y);
+      ctx.quadraticCurveTo((n.x+alvo.x)/2, Math.max(n.y,alvo.y)+40*S.converge, alvo.x, alvo.y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(217,160,63,'+0.9*S.converge+')';
+    ctx.font = '10px "IBM Plex Mono", monospace'; ctx.textAlign='center';
+    ctx.fillText('37 fluxos · 1 domínio de falha', nos.pbx.x, nos.pbx.y + 44);
+  }
+
+  // rotas improvisadas via radio
+  if (S.improviso > 0.03){
+    ctx.strokeStyle = 'rgba(244,244,241,'+0.3*S.improviso+')';
+    ctx.setLineDash([2,4]);
+    for (const [x,y] of improviso){
+      const A = pos(x), B = pos(y);
+      ctx.beginPath();
+      ctx.moveTo(A.x,A.y);
+      ctx.quadraticCurveTo((A.x+B.x)/2, (A.y+B.y)/2 - 26, B.x, B.y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    // radio saturando: aneis saindo dele
+    const r = (t*0.05) % 46;
+    ctx.strokeStyle = 'rgba(244,244,241,'+(0.32*S.improviso*(1-r/46))+')';
+    ctx.beginPath(); ctx.arc(nos.radio.x, nos.radio.y, 8+r, 0, 7); ctx.stroke();
+  }
+
+  // extra A
+  if (S.extraA > 0.02){
+    for (const [x,y] of ligasA){
+      const id = x+'-'+y, st = estiloLiga(id, S.extraA*a);
+      const A = pos(x), B = pos(y);
+      ctx.strokeStyle = st.cor; ctx.lineWidth = st.larg/esc*1.2; ctx.setLineDash(st.tra);
+      ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // mensagens
+  if (S.particulas && !semAnimacao){
+    for (const m of msgs){
+      m.t += m.v * S.vel;
+      const [x,y] = ligas[m.l];
+      const id = x+'-'+y;
+      if (S.ligasMortas.has(id)){ m.t=0; m.l=Math.floor(Math.random()*ligas.length); m.hist.length=0; continue; }
+      // perda no meio do caminho
+      if (S.perda > 0 && m.t > 0.4 && m.t < 0.9 && Math.random() < S.perda){
+        const A=pos(x), B=pos(y);
+        mortes.push({x:A.x+(B.x-A.x)*m.t, y:A.y+(B.y-A.y)*m.t, vida:1});
+        m.t=0; m.l=Math.floor(Math.random()*ligas.length); m.hist.length=0; continue;
+      }
+      if (m.t > 1){
+        // chegando no pbx com retencao: fica presa
+        if (S.retencao > 0 && (y==='pbx'||x==='pbx'||y==='rede') && Math.random() < S.retencao) retidas = Math.min(34, retidas+1);
+        m.t=0; m.l=Math.floor(Math.random()*ligas.length); m.hist.length=0; continue;
+      }
+      const A=pos(x), B=pos(y);
+      const px=A.x+(B.x-A.x)*m.t, py=A.y+(B.y-A.y)*m.t;
+      m.hist.push([px,py]); if (m.hist.length>7) m.hist.shift();
+      for (let i=0;i<m.hist.length;i++){
+        ctx.fillStyle = 'rgba(192,138,78,'+((0.1+0.7*(i/m.hist.length))*a)+')';
+        ctx.beginPath(); ctx.arc(m.hist[i][0], m.hist[i][1], 1.6/Math.sqrt(esc), 0, 7); ctx.fill();
+      }
+    }
+  }
+  // marcas de mensagens perdidas
+  for (let i=mortes.length-1;i>=0;i--){
+    const d = mortes[i];
+    d.vida -= 0.02;
+    if (d.vida<=0){ mortes.splice(i,1); continue; }
+    ctx.strokeStyle = 'rgba(217,160,63,'+(0.7*d.vida)+')';
+    ctx.beginPath();
+    ctx.moveTo(d.x-3,d.y-3); ctx.lineTo(d.x+3,d.y+3);
+    ctx.moveTo(d.x+3,d.y-3); ctx.lineTo(d.x-3,d.y+3);
+    ctx.stroke();
+  }
+  // mensagens retidas orbitando o pbx
+  if (retidas > 0){
+    for (let i=0;i<retidas;i++){
+      const ang = i*0.9 + t*0.0012;
+      const rr = 14 + (i%5)*3.4;
+      ctx.fillStyle = 'rgba(217,160,63,'+0.5*a+')';
+      ctx.beginPath();
+      ctx.arc(nos.pbx.x + Math.cos(ang)*rr, nos.pbx.y + Math.sin(ang)*rr*0.7, 1.3, 0, 7);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(217,160,63,'+0.9*a+')';
+    ctx.font = '10px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+    ctx.fillText('retidas: '+retidas, nos.pbx.x+30, nos.pbx.y+4);
+  }
+
+  // nos por cima
+  ctx.font = (9.5/esc*1.1)+'px "IBM Plex Mono", monospace'; ctx.textAlign='center';
+  const desenhaNo = (id, mapa, alphaN) => {
+    const n = mapa[id], c = corNo(id);
+    const resp = 1 + Math.sin(t*0.0016 + n.x)*0.1;
+    const r = (n.nucleo?8:5.5)*resp;
+    ctx.globalAlpha = alphaN;
+    ctx.shadowColor = c.borda; ctx.shadowBlur = (n.nucleo?16:6)*esc*alphaN;
+    ctx.fillStyle = c.miolo; ctx.strokeStyle = c.borda; ctx.lineWidth = 1.2/esc;
+    if (id==='pbx' && S.cegos>0.05) ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,7); ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]); ctx.shadowBlur = 0;
+    ctx.fillStyle = c.texto;
+    ctx.fillText(n.nome, n.x, n.y + 19);
+    ctx.globalAlpha = 1;
+  };
+  for (const id in nos) desenhaNo(id, nos, a);
+  if (S.extraA > 0.02) for (const id in extraA) desenhaNo(id, extraA, S.extraA*a);
+
+  // rotulos do ponto cego
+  if (S.cegos > 0.03){
+    ctx.fillStyle = 'rgba(217,160,63,'+0.9*S.cegos+')';
+    ctx.font = '9px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+    ctx.fillText('sem health check', nos.pbx.x+34, nos.pbx.y-20);
+    ctx.fillText('sem alerta de degradação', nos.pbx.x+34, nos.pbx.y-7);
+    ctx.fillText('failover nunca testado', nos.pbx.x+34, nos.pbx.y+6);
+  }
+}
+
+function desenhaZonas(){
+  if (S.zonas < 0.02) return;
+  ctx.font = '9px "IBM Plex Mono", monospace'; ctx.textAlign='left';
+  for (const z of zonas){
+    const per = 2*(z.w+z.h)*S.zonas;
+    ctx.strokeStyle = 'rgba(192,138,78,'+0.42*S.zonas+')';
+    ctx.save();
+    ctx.beginPath(); ctx.rect(z.x,z.y,z.w,z.h);
+    ctx.setLineDash([per,99999]);
+    ctx.stroke();
+    ctx.restore();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(192,138,78,'+0.9*S.zonas+')';
+    ctx.fillText(z.nome, z.x+16, z.y+22);
+    ctx.beginPath(); ctx.arc(z.x+z.w-22, z.y+22, 3, 0, 7); ctx.fill();
+  }
+}
+function desenhaAneis(t){
+  if (S.aneis < 0.02) return;
+  for (let i=0;i<3;i++){
+    const r = (170+i*80)*S.aneis;
+    ctx.strokeStyle = 'rgba(217,160,63,'+(0.22-i*0.05)+')';
+    ctx.beginPath(); ctx.arc(500,360, r+Math.sin(t*0.001+i)*5, 0, 7); ctx.stroke();
+  }
+}
+
+// loop principal
+let tAntes = 0, mx = 0, my = 0;
+function quadro(t){
+  const dt = Math.min(50, t-tAntes); tAntes = t;
+  if (!W) mede();
+
+  const k = semAnimacao ? 1 : 0.045;
+  S.fisico = suave(S.fisico, S.fisicoAlvo, k);
+  S.sistema = suave(S.sistema, S.sistemaAlvo, k);
+  S.vel = suave(S.vel, S.velAlvo, k);
+  S.maquinas = suave(S.maquinas, S.maquinasAlvo, k);
+  S.aneis = suave(S.aneis, S.aneisAlvo, k*0.6);
+  S.zonas = suave(S.zonas, S.zonasAlvo, k*0.7);
+  S.extraA = suave(S.extraA, S.extraAAlvo, k);
+  S.cegos = suave(S.cegos, S.cegosAlvo, k);
+  S.improviso = suave(S.improviso, S.improvisoAlvo, k);
+  S.converge = suave(S.converge, S.convergeAlvo, k*0.7);
+  cam.x = suave(cam.x,cam.xA,k); cam.y = suave(cam.y,cam.yA,k); cam.z = suave(cam.z,cam.zA,k*0.8);
+  veu.style.opacity = S.dimAlvo;
+
+  // motor de confirmacoes: gate e guindastes dependem de mensagens chegando
+  if (!semAnimacao && S.confPeriodo < 1e8){
+    confTimer += dt;
+    if (confTimer >= S.confPeriodo){
+      confTimer = 0;
+      cancelaAte = performance.now() + Math.min(1400, S.confPeriodo*0.7);
+      gruas.forEach(g => g.esperando = false);
+      if (retidas > 0) retidas = Math.max(0, retidas - 3);
+    }
+  }
+  // guindastes: andam quando nao estao esperando; em modo degradado esperam entre ciclos
+  for (const g of gruas){
+    if (!g.esperando) g.fase += 0.0011*dt*S.maquinas;
+    if (S.confPeriodo > 2200 && S.confPeriodo < 1e8 && Math.sin(g.fase) > 0.995) g.esperando = true;
+    if (S.confPeriodo >= 1e8) g.esperando = true; // colapso: todo mundo esperando
+  }
+  // navio acumula espera quando a coordenacao degrada
+  if (S.confPeriodo > 2200) esperaNavio += dt*0.012;
+
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  const base = Math.min(W/1080, H/760);
+  const esc = base*cam.z;
+
+  // parallax por plano: fisico mexe menos que o sistema
+  const paraF = {x: mx*7,  y: my*5};
+  const paraS = {x: mx*14, y: my*9};
+
+  // PLANO 1+2: territorio e operacao
+  if (S.fisico > 0.01){
+    ctx.setTransform(esc,0,0,esc, W/2-(cam.x+paraF.x)*esc, H/2-(cam.y+paraF.y)*esc);
+    ctx.globalAlpha = S.fisico;
+    agua(t, esc);
+    navio(t);
+    for (const g of gruas) grua(g, t);
+    patioFisico();
+    gates(t);
+    if (!semAnimacao) tickCaminhoes(dt);
+    desenhaCaminhoes();
+    ctx.globalAlpha = 1;
+  }
+
+  // PLANO 3: sistema invisivel
+  ctx.setTransform(esc,0,0,esc, W/2-(cam.x+paraS.x)*esc, H/2-(cam.y+paraS.y)*esc);
+  desenhaAneis(t);
+  desenhaZonas();
+  sistema(t, esc);
+
+  requestAnimationFrame(quadro);
+}
+requestAnimationFrame(quadro);
+
+addEventListener('pointermove', e => {
+  if (semAnimacao) return;
+  mx = e.clientX/innerWidth - 0.5;
+  my = e.clientY/innerHeight - 0.5;
+  mundo.style.transform = 'rotateX('+(12 - my*5)+'deg) rotateY('+(mx*6)+'deg)';
+});
+
+// hud e cenas
+const relogio = document.getElementById('relogio');
+const statusEl = document.getElementById('status');
+const statusTxt = document.getElementById('status-txt');
+const legenda = document.getElementById('legenda');
+const legTxt = document.getElementById('legenda-txt');
+const legSub = document.getElementById('legenda-sub');
+const controles = document.getElementById('controles');
+
+function setStatus(txt, cls){ statusTxt.textContent = txt; statusEl.className = cls||''; if (audio) audio.blip(cls==='falha'?200:620); }
+function setLegenda(txt, sub){
+  legenda.classList.remove('on');
+  setTimeout(() => {
+    legTxt.textContent = txt||'';
+    legSub.textContent = sub||'';
+    if (txt) legenda.classList.add('on');
+  }, 380);
+}
+
+const cenas = [
+ {id:'intro', rotulo:'——', fx(){
+    limpa(); alvoCam({x:500,y:330,z:0.94});
+    setStatus('AGUARDANDO',''); setLegenda('');
+    controles.classList.remove('on');
+    if (audio){ audio.grave(54); audio.volume(0.05); }
+ }},
+ {id:'normal', min:360, fim:400, fx(){
+    limpa(); alvoCam({x:480,y:300,z:1.06});
+    setStatus('NOMINAL','');
+    setLegenda('06:00 — o terminal desperta.', '12 setores · 286 eventos/min · coordenação invisível');
+    controles.classList.remove('on');
+    if (audio){ audio.grave(54); audio.volume(0.05); }
+ }},
+ {id:'arquitetura', min:400, fim:497, fx(){
+    limpa(); S.fisicoAlvo = 0.16;
+    alvoCam({x:520,y:420,z:1.05});
+    setStatus('MAPEAMENTO','');
+    setLegenda('O porto físico é apenas a superfície.', 'toda decisão desce ao mesmo subsolo: rede → pbx → operadora');
+ }},
+ {id:'latencia', min:497, fim:503, fx(){
+    limpa();
+    S.velAlvo = 0.3; S.maquinasAlvo = 0.6;
+    S.perda = 0.004; S.retencao = 0.25; S.confPeriodo = 3400;
+    S.nosAlerta.add('pbx');
+    alvoCam({x:600,y:520,z:1.35});
+    setStatus('DEGRADAÇÃO','alerta');
+    setLegenda('08:17 — nada parou. Tudo espera.', 'mensagens retidas · guindastes aguardando confirmação');
+    if (audio) audio.grave(48);
+ }},
+ {id:'cego', min:503, fim:511, fx(){
+    limpa();
+    S.velAlvo = 0.3; S.maquinasAlvo = 0.6; S.cegosAlvo = 1;
+    S.perda = 0.004; S.retencao = 0.25; S.confPeriodo = 3400;
+    S.nosAlerta.add('pbx');
+    alvoCam({x:672,y:576,z:1.8});
+    setStatus('PONTO CEGO','alerta');
+    setLegenda('O sistema era monitorado. O comportamento, não.');
+ }},
+ {id:'propagacao', min:511, fim:544, fx(){
+    limpa();
+    S.velAlvo = 0.4; S.maquinasAlvo = 0.35; S.improvisoAlvo = 1;
+    S.perda = 0.009; S.retencao = 0.4; S.confPeriodo = 5600;
+    S.nosAlerta.add('pbx');
+    ['torre','operacional','patio','despach','portoes','guindastes'].forEach(id => S.nosAlerta.add(id));
+    for (const [a,b] of ligas) if (a==='rede'||a==='pbx'||b==='pbx') S.ligasAlerta.add(a+'-'+b);
+    alvoCam({x:520,y:400,z:1.08});
+    setStatus('PROPAGAÇÃO','alerta');
+    setLegenda('08:31 — a falha técnica deixou de ser técnica.', 'rádio saturado · rotas improvisadas · filas nascendo');
+    if (audio) audio.grave(42);
+ }},
+ {id:'colapso', min:544, fim:590, fx(){
+    limpa();
+    // o territorio fica INTEIRO. só a coordenacao morre.
+    S.maquinasAlvo = 0.03; S.particulas = false; S.confPeriodo = 1e9;
+    S.sistemaAlvo = 0.85; S.dimAlvo = 0.22;
+    S.nosFalha.add('pbx'); S.nosFalha.add('operadora'); S.nosFalha.add('rede');
+    ['torre','operacional','patio','despach','portoes','guindastes','seguranca'].forEach(id => S.nosAlerta.add(id));
+    for (const [a,b] of ligas) if (a==='rede'||a==='pbx'||b==='pbx') S.ligasMortas.add(a+'-'+b);
+    alvoCam({x:500,y:340,z:0.96});
+    setStatus('COLAPSO','falha');
+    setLegenda('Nada foi destruído. Ainda assim, tudo parou.', 'o porto preservou seus equipamentos. perdeu a capacidade de coordená-los.');
+    if (audio){ audio.grave(32); audio.volume(0.012); } // o som quase corta
+ }},
+ {id:'custo', rotulo:'T+11H', fx(){
+    limpa();
+    S.maquinasAlvo = 0.03; S.particulas = false; S.confPeriodo = 1e9;
+    S.fisicoAlvo = 0.5; S.aneisAlvo = 1;
+    S.nosFalha.add('pbx');
+    alvoCam({x:500,y:360,z:0.8});
+    setStatus('IMPACTO','falha');
+    setLegenda('Cada minuto sem coordenação possui um custo.', 'R$ 2,8 mi em 11 h · métrica simulada');
+ }},
+ {id:'diagnostico', rotulo:'ANÁLISE', fx(){
+    limpa();
+    S.fisicoAlvo = 0.06; S.maquinasAlvo = 0; S.particulas = false;
+    S.convergeAlvo = 1; S.confPeriodo = 1e9;
+    ['pbx'].forEach(id => S.nosAlerta.add(id));
+    alvoCam({x:560,y:460,z:1.12});
+    setStatus('CARTOGRAFIA','projeto');
+    setLegenda('O ponto cego não era o servidor.', 'era a quantidade de decisões concentradas nele');
+    if (audio){ audio.grave(48); audio.volume(0.05); }
+ }},
+ {id:'engA', rotulo:'PROJETO A', fx(){
+    limpa(); S.fisicoAlvo = 0.3; S.extraAAlvo = 1;
+    alvoCam({x:540,y:540,z:1.2});
+    setArq('a');
+    setStatus('ENGENHARIA A','projeto');
+    setLegenda('Alternativa A — o núcleo deixa de ser único.', 'operadora B · pbx B · failover automático');
+    if (audio) audio.grave(54);
+ }},
+ {id:'engB', rotulo:'PROJETO B', fx(){
+    limpa(); S.fisicoAlvo = 0.4; S.zonasAlvo = 1;
+    alvoCam({x:500,y:330,z:0.94});
+    setArq('b');
+    setStatus('ENGENHARIA B','projeto');
+    setLegenda('Alternativa B — a falha para na fronteira.', 'três zonas com autonomia local');
+ }},
+ {id:'comparacao', rotulo:'COMPARAÇÃO', fx(){
+    limpa(); S.fisicoAlvo = 0.3;
+    aplicaArq(arqAtual);
+    alvoCam({x:510,y:380,z:1});
+    setStatus('COMPARAÇÃO','projeto');
+    setLegenda('O mesmo incidente. Três arquiteturas.', 'alterne no console abaixo');
+    controles.classList.add('on');
+    controles.classList.remove('com-sim');
+ }},
+ {id:'validacao', rotulo:'TESTE', fx(){
+    limpa(); S.fisicoAlvo = 0.3;
+    aplicaArq(arqAtual === 'original' ? 'a' : arqAtual);
+    alvoCam({x:540,y:460,z:1.06});
+    setStatus('VALIDAÇÃO','projeto');
+    setLegenda('Prove a arquitetura. Derrube-a.', 'a mesma falha, na nova estrutura');
+    controles.classList.add('on','com-sim');
+ }}
+];
+
+let arqAtual = 'original';
+function setArq(a){
+  arqAtual = a;
+  controles.querySelectorAll('button[data-arq]').forEach(b => b.classList.toggle('ativo', b.dataset.arq===a));
+}
+function aplicaArq(a){
+  S.extraAAlvo = a==='a' ? 1 : 0;
+  S.zonasAlvo = a==='b' ? 1 : 0;
+  setArq(a);
+}
+controles.querySelectorAll('button[data-arq]').forEach(b => {
+  b.addEventListener('click', () => {
+    const a = b.dataset.arq;
+    limpa(); S.fisicoAlvo = 0.3;
+    if (a==='original'){
+      aplicaArq('original');
+      S.nosFalha.add('pbx'); S.confPeriodo = 1e9; S.maquinasAlvo = 0.03;
+      for (const [x,y] of ligas) if (x==='rede'||x==='pbx'||y==='pbx') S.ligasMortas.add(x+'-'+y);
+      setLegenda('Original: colapso total.', 'recuperação 6–11 h');
+    } else if (a==='a'){
+      aplicaArq('a');
+      setLegenda('Alternativa A — o núcleo deixa de ser único.', 'failover automático');
+    } else {
+      aplicaArq('b');
+      setLegenda('Alternativa B — a falha para na fronteira.', 'autonomia por zonas');
+    }
+  });
+});
+
+document.getElementById('btn-sim').addEventListener('click', () => {
+  const arq = arqAtual==='original' ? 'a' : arqAtual;
+  const passo = (ms, fn) => setTimeout(fn, ms);
+  limpa(); S.fisicoAlvo = 0.35;
+  if (arq==='a'){
+    aplicaArq('a');
+    passo(100, () => { S.nosFalha.add('operadora'); S.ligasMortas.add('pbx-operadora'); setStatus('FALHA INDUZIDA','alerta'); setLegenda('Operadora principal: derrubada.'); if (audio) audio.grave(40); });
+    passo(1500, () => { ligasA.forEach(([a,b]) => S.ligasRota.add(a+'-'+b)); S.velAlvo = 0.7; setLegenda('Rota secundária assumindo.', 'o porto desacelera. não para.'); });
+    passo(3000, () => { S.velAlvo = 1; setStatus('RECUPERADO','projeto'); setLegenda('Terminal ativo. Recuperação: 47 s.', 'simulado'); if (audio) audio.grave(54); });
+  } else {
+    aplicaArq('b');
+    passo(100, () => { S.nosFalha.add('pbx'); S.nosFalha.add('rede');
+      for (const [a,b] of ligas) if (a==='rede'||a==='pbx'||b==='pbx') S.ligasMortas.add(a+'-'+b);
+      setStatus('FALHA INDUZIDA','alerta'); setLegenda('Núcleo central: derrubado.'); if (audio) audio.grave(40); });
+    passo(1500, () => { setLegenda('Zonas operando em autonomia local.', 'guindastes seguem · gates seguem · segurança segue'); });
+    passo(3000, () => { setStatus('CONTIDO','projeto'); setLegenda('A falha continua existindo. O colapso deixou de se propagar.', 'simulado'); if (audio) audio.grave(54); });
+  }
+});
+
+// scroll = tempo
+let cenaAtiva = -1;
+function minutosPraHora(m){
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(Math.round(m%60)).padStart(2,'0');
+}
+function noScroll(){
+  const vh = innerHeight, y = scrollY;
+  const alt = vh*1.4;
+  let idx = Math.floor((y + vh*0.45)/alt);
+  idx = Math.max(0, Math.min(cenas.length-1, idx));
+
+  document.getElementById('capa').classList.toggle('some', y > vh*0.25);
+
+  if (idx !== cenaAtiva){ cenaAtiva = idx; cenas[idx].fx(); }
+
+  const c = cenas[idx];
+  if (c.min){
+    const dentro = Math.min(1, Math.max(0, ((y+vh*0.45)-idx*alt)/alt));
+    relogio.textContent = minutosPraHora(c.min + (c.fim-c.min)*dentro);
+  } else relogio.textContent = c.rotulo || '——';
+
+  const fimY = document.getElementById('fim').offsetTop;
+  if (y + vh > fimY + vh*0.3) cam.zA = 0.72;
+}
+addEventListener('scroll', noScroll, {passive:true});
+
+document.getElementById('btn-reiniciar').addEventListener('click', () => {
+  aplicaArq('original');
+  caminhoes.length = 0; retidas = 0; esperaNavio = 0; mortes.length = 0;
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+mede();
+noScroll();
+</script>
+</body>
+</html>
