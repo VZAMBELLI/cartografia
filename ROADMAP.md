@@ -1,6 +1,6 @@
 # Roadmap
 
-A Cartografia é uma experiência em capítulos — uma progressão, não versões
+A Cartografia é uma experiência em modos — uma progressão, não versões
 concorrentes:
 
 ```
@@ -9,8 +9,8 @@ Sistema Vivo → Ponto Cego → Mundos → Anatomia → Casos → Método → Ar
 
 ## Publicado
 
-- **Capítulo I — Sistema Vivo** — a rede que nasce, respira e reage às sete lentes.
-- **Capítulo II — Ponto Cego** — o sistema compreendido.
+- **Sistema Vivo** — a rede que nasce, respira e reage às sete lentes.
+- **Ponto Cego** — o sistema compreendido.
 
 ## Em construção
 

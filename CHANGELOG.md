@@ -3,7 +3,7 @@
 ## [0.3] — 2026-07
 
 ### Adicionado
-- Capítulo II — Ponto Cego (`/ii/`).
+- Ponto Cego (`/ii/`).
 
 ### Alterado
 - Código organizado em `css/` e `js/`.
@@ -13,7 +13,7 @@
 ## [0.2] — 2026-07
 
 ### Adicionado
-- Capítulo I — Sistema Vivo: rede viva em canvas com as sete lentes de
+- Sistema Vivo: rede viva em canvas com as sete lentes de
   comportamento (Entrada, Transformação, Dependência, Propagação,
   Observabilidade, Resiliência, Colapso).
 - Sequência de abertura e reação ao ponteiro.

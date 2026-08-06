@@ -15,14 +15,14 @@ lê qualquer sistema por sete lentes de comportamento:
 
 Cada lente reconfigura a rede em tempo real, na tela.
 
-## Capítulos
+## Experiências
 
-| Capítulo | O que é | Link |
+| Experiência | O que é | Link |
 |---|---|---|
-| **I — Sistema Vivo** | a rede que nasce, respira e reage | [`/`](https://vzambelli.github.io/cartografia/) |
-| **II — Ponto Cego** | o sistema compreendido | [`/ii/`](https://vzambelli.github.io/cartografia/ii/) |
+| **Sistema Vivo** | a rede que nasce, respira e reage | [`/`](https://vzambelli.github.io/cartografia/) |
+| **Ponto Cego** | o sistema compreendido | [`/ii/`](https://vzambelli.github.io/cartografia/ii/) |
 
-Os próximos capítulos estão no [ROADMAP](ROADMAP.md).
+Os próximos modos estão no [ROADMAP](ROADMAP.md).
 
 ## Como rodar
 
@@ -37,10 +37,10 @@ python3 -m http.server 8000
 
 ```
 .
-├── index.html          # Capítulo I — Sistema Vivo
+├── index.html          # Sistema Vivo
 ├── css/styles.css      # identidade visual e layout
 ├── js/cartografia.js   # a rede viva (canvas) e os comportamentos
-└── ii/index.html       # Capítulo II — Ponto Cego
+└── ii/index.html       # Ponto Cego
 ```
 
 ## Tecnologia
